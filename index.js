@@ -1,27 +1,38 @@
+const aedes = require("aedes")();
 const net = require("net");
 
-// Create a server to listen for incoming connections
-const server = net.createServer((socket) => {
-  console.log("New connection established.");
+// Create the MQTT broker on port 1883
+const PORT = 1883;
+const server = net.createServer(aedes.handle);
+server.listen(PORT, () => {
+  console.log(`Aedes MQTT Broker running on port ${PORT}`);
+});
 
-  // Event listener for data received from the client
-  socket.on("data", (data) => {
-    console.log(`Received data: ${data.toString()}`);
-  });
+// Log when a client connects
+aedes.on("client", (client) => {
+  console.log(`Client connected: ${client.id}`);
+});
 
-  // Handle socket errors
-  socket.on("error", (err) => {
-    console.error(`Socket error: ${err.message}`);
-  });
+// Log messages published to the broker
+aedes.on("publish", (packet, client) => {
+  if (client) {
+    console.log(`Message from ${client.id}: ${packet.payload.toString()}`);
+  }
+});
 
-  // Handle socket closure
-  socket.on("close", () => {
-    console.log("Connection closed.");
+// Optional: Subscribe to the topic "sensors/temperature" to process data
+const mqtt = require("mqtt");
+const subscriber = mqtt.connect("mqtt://localhost:1883");
+
+subscriber.on("connect", () => {
+  console.log("Server subscriber connected to MQTT broker.");
+  subscriber.subscribe("sensors/temperature", (err) => {
+    if (!err) {
+      console.log("Subscribed to sensors/temperature");
+    }
   });
 });
 
-// Start the server and listen on port 8080
-const PORT = 8080;
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server listening on port ${PORT}`);
+subscriber.on("message", (topic, message) => {
+  console.log(`Received message on ${topic}: ${message.toString()}`);
 });
