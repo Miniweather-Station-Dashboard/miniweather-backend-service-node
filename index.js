@@ -1,38 +1,65 @@
 const aedes = require("aedes")();
 const net = require("net");
-
-// Create the MQTT broker on port 1883
-const PORT = 1883;
-const server = net.createServer(aedes.handle);
-server.listen(PORT, () => {
-  console.log(`Aedes MQTT Broker running on port ${PORT}`);
-});
-
-// Log when a client connects
-aedes.on("client", (client) => {
-  console.log(`Client connected: ${client.id}`);
-});
-
-// Log messages published to the broker
-aedes.on("publish", (packet, client) => {
-  if (client) {
-    console.log(`Message from ${client.id}: ${packet.payload.toString()}`);
-  }
-});
-
-// Optional: Subscribe to the topic "sensors/temperature" to process data
+const http = require("http");
 const mqtt = require("mqtt");
-const subscriber = mqtt.connect("mqtt://localhost:1883");
+const socketIo = require("socket.io");
 
-subscriber.on("connect", () => {
+// Create the MQTT broker
+const MQTT_PORT = 1883;
+const mqttServer = net.createServer(aedes.handle);
+mqttServer.listen(MQTT_PORT, () => {
+  console.log(`Aedes MQTT Broker running on port ${MQTT_PORT}`);
+});
+
+// Create an HTTP server for Socket.IO
+const HTTP_PORT = 3000;
+const httpServer = http.createServer();
+const io = socketIo(httpServer, {
+  cors: {
+    origin: "*", // Allow all origins (you can restrict it to specific origins if needed)
+    methods: ["GET", "POST"], // Allow GET and POST methods
+  },
+});
+
+// Start the Socket.IO server
+httpServer.listen(HTTP_PORT, () => {
+  console.log(`Socket.IO server running on port ${HTTP_PORT}`);
+});
+
+// Log MQTT client connections
+aedes.on("client", (client) => {
+  console.log(`MQTT client connected: ${client.id}`);
+});
+
+// Subscribe to the MQTT topic using an internal subscriber
+const mqttSubscriber = mqtt.connect("mqtt://localhost:1883");
+
+mqttSubscriber.on("connect", () => {
   console.log("Server subscriber connected to MQTT broker.");
-  subscriber.subscribe("sensors/temperature", (err) => {
+  mqttSubscriber.subscribe("sensors/temperature", (err) => {
     if (!err) {
       console.log("Subscribed to sensors/temperature");
     }
   });
 });
 
-subscriber.on("message", (topic, message) => {
-  console.log(`Received message on ${topic}: ${message.toString()}`);
+// Forward MQTT messages to Socket.IO clients
+mqttSubscriber.on("message", (topic, message) => {
+  console.log(`Received MQTT message on ${topic}: ${message.toString()}`);
+
+  // Process the data (you can modify it as needed here)
+  const processedData = `Processed: ${message.toString()}`;
+
+  // Emit the processed data to all connected Socket.IO clients
+  io.emit("sensorData", processedData);
+  console.log(`Sent data to Socket.IO clients: ${processedData}`);
+});
+
+// Handle new Socket.IO client connections
+io.on("connection", (socket) => {
+  console.log("New Socket.IO client connected.");
+
+  socket.on("disconnect", () => {
+    console.log("Socket.IO client disconnected.");
+  });
 });
