@@ -36,9 +36,9 @@ const mqttSubscriber = mqtt.connect("mqtt://localhost:1883");
 
 mqttSubscriber.on("connect", () => {
   console.log("Server subscriber connected to MQTT broker.");
-  mqttSubscriber.subscribe("sensors/temperature", (err) => {
+  mqttSubscriber.subscribe("sensors/weather", (err) => {
     if (!err) {
-      console.log("Subscribed to sensors/temperature");
+      console.log("Subscribed to sensors/weather");
     }
   });
 });
@@ -51,7 +51,7 @@ mqttSubscriber.on("message", (topic, message) => {
   const processedData = `Processed: ${message.toString()}`;
 
   // Emit the processed data to all connected Socket.IO clients
-  io.emit("sensorData", processedData);
+  io.emit("sensorData", message);
   console.log(`Sent data to Socket.IO clients: ${processedData}`);
 });
 
