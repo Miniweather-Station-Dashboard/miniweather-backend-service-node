@@ -2,15 +2,18 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "/src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "aedes": "^0.51.3",
+    "dotenv": "^16.4.7",
     "mqtt": "^5.10.3",
+    "nodemon": "^3.1.9",
     "socket.io": "^4.8.1"
   }
 }
