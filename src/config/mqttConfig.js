@@ -1,6 +1,7 @@
+require("dotenv").config();
+
 module.exports = {
-    MQTT_PORT: 1883,
-    MQTT_BROKER_URL: "mqtt://localhost:1883",
-    MQTT_TOPIC: "sensors/weather",
-  };
-  
+  MQTT_BROKER_URL: process.env.MQTT_BROKER_URL ,
+  MQTT_TOPIC: process.env.MQTT_TOPIC ,
+  MQTT_HYPERBASE_TOPIC: process.env.MQTT_HYPERBASE_TOPIC 
+};

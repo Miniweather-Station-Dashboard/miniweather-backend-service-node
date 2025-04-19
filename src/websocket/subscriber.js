@@ -5,7 +5,7 @@ const logger = require("../utils/logger");
 const ws = new WebSocket(WS_URL);
 
 ws.on('open', () => {
-    logger.info("✅ WebSocket connected");
+    logger.info("==> WebSocket connected");
 });
 
 ws.on('message', (data) => {
@@ -14,12 +14,12 @@ ws.on('message', (data) => {
 });
 
 ws.on('close', () => {
-    logger.info(" WebSocket closed");
+    logger.info("==> WebSocket closed");
 });
 
 ws.on('error', (err) => {
     console.log(err)
-    logger.error(" WebSocket error:", err);
+    logger.error("==> WebSocket error:", err);
 });
 
 module.exports = { ws };
