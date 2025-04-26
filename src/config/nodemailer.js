@@ -29,7 +29,7 @@ class EmailService {
    */
   async sendRegisterMail({ to, name, code }) {
     const mailOptions = {
-      from: `"Borobudur" <${process.env.GMAIL_USER}>`,
+      from: `"MiniWeather Admin Page" <${process.env.GMAIL_USER}>`,
       to,
       subject: "Verify Your Email Address",
       html: `
@@ -54,7 +54,7 @@ class EmailService {
   
   async sendResetPasswordMail({ to, name, code }) {
     const mailOptions = {
-      from: `"Borobudur" <${process.env.GMAIL_USER}>`,
+      from: `"MiniWeather Admin Page" <${process.env.GMAIL_USER}>`,
       to,
       subject: "Reset Your Password",
       html: `
