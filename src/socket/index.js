@@ -3,9 +3,8 @@ const { HTTP_PORT } = require("../config/socketConfig");
 const http = require("http");
 const logger = require("../utils/logger");
 
-function initializeSocket() {
-  const httpServer = http.createServer();
-  const io = socketIo(httpServer, {
+function initializeSocket(server) {
+  const io = socketIo(server, {
     cors: {
       origin: "*",
       methods: ["GET", "POST"],
@@ -20,10 +19,6 @@ function initializeSocket() {
     socket.on("disconnect", () => {
       logger.info("Socket.IO client disconnected.");
     });
-  });
-
-  httpServer.listen(HTTP_PORT, () => {
-    logger.info(`Socket.IO server running on port ${HTTP_PORT}`);
   });
 
   return io;
