@@ -34,7 +34,7 @@ class OnboardingDeviceRepository {
   }
 
   // Create a new onboarding device with optional sensor types
-  async create({ name, location, userId, status, sensorTypeIds }) {
+  async create({ name, location, userId, status, sensorTypeIds }, client = pool) {
     const query = {
       text: `
         INSERT INTO onboarding_devices (name, location, user_id, status)
@@ -43,7 +43,7 @@ class OnboardingDeviceRepository {
       `,
       values: [name, location, userId, status],
     };
-    const res = await pool.query(query);
+    const res = await client.query(query);
     const device = res.rows[0];
 
     // Add device sensors if provided

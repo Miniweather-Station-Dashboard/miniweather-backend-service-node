@@ -2,7 +2,7 @@ const pool = require("../config/db");
 
 class DeviceSensorRepository {
 
-    async create({ deviceId, sensorTypeId }) {
+    async create({ deviceId, sensorTypeId }, client = pool) {
     const query = {
       text: `
         INSERT INTO device_sensors (device_id, sensor_type_id)
@@ -11,7 +11,7 @@ class DeviceSensorRepository {
       `,
       values: [deviceId, sensorTypeId],
     };
-    const res = await pool.query(query);
+    const res = await client.query(query);
     return res.rows[0]; 
   }
 

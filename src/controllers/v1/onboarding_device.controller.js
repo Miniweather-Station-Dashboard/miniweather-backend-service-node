@@ -1,6 +1,8 @@
 const onboardingDeviceRepository = require("../../repositories/onboarding_device.repository");
 const CustomError = require("../../helpers/customError");
 const deviceSensorRepository = require("../../repositories/device_sensor.repository");
+const sensorTypeRepository = require("../../repositories/sensor_type.repository");
+const { withTransaction } = require("../../utils/dbTransaction");
 
 const createOnboardingDevice = async (req) => {
   const { name, location, status, sensorTypeIds } = req.body;
@@ -13,38 +15,49 @@ const createOnboardingDevice = async (req) => {
     });
   }
 
-  const deviceExists = await onboardingDeviceRepository.findByName(name);
-  if (deviceExists) {
-    throw new CustomError({
-      message: "Device with this name already exists",
-      statusCode: 400,
-    });
-  }
-
-  const device = await onboardingDeviceRepository.create({
-    name,
-    location,
-    userId,
-    status,
-  });
-
-  if (sensorTypeIds && Array.isArray(sensorTypeIds)) {
-    for (const sensorTypeId of sensorTypeIds) {
-      await deviceSensorRepository.create({
-        deviceId: device.id,
-        sensorTypeId,
-      });
+  return withTransaction(async (client) => {
+    const existing = await onboardingDeviceRepository.findByName(name);
+    if (existing) {
+      throw new CustomError({ message: "Device exists", statusCode: 400 });
     }
-  }
 
-  return { message: "Onboarding device created successfully", device };
+    const device = await onboardingDeviceRepository.create(
+      { name, location, status, userId },
+      client
+    );
+
+    if (Array.isArray(sensorTypeIds)) {
+      for (const sid of sensorTypeIds) {
+        await deviceSensorRepository.create(
+          { deviceId: device.id, sensorTypeId: sid },
+          client
+        );
+      }
+    }
+
+    return { message: "Device created", device };
+  });
 };
 
 const getAllOnboardingDevices = async (req) => {
   const limit = parseInt(req.query.limit, 10) || 10;
   const offset = parseInt(req.query.offset, 10) || 0;
+  const devices = await onboardingDeviceRepository.findAllWithLimit(
+    limit,
+    offset
+  );
+  for (const device of devices) {
+    const sensors = await deviceSensorRepository.findByDeviceId(device.id);
+    device.sensors = [];
 
-  const devices = await onboardingDeviceRepository.findAllWithLimit(limit, offset);
+    for (const sensor of sensors) {
+      const sensorType = await sensorTypeRepository.findById(
+        sensor.sensorTypeId
+      );
+      device.sensors.push({ ...sensor, sensorType });
+    }
+  }
+
   return { devices };
 };
 
@@ -59,12 +72,20 @@ const getOnboardingDeviceById = async (req) => {
     });
   }
 
-  return { device };
+  const sensors = await deviceSensorRepository.findByDeviceId(id);
+  const detailedSensors = [];
+
+  for (const sensor of sensors) {
+    const sensorType = await sensorTypeRepository.findById(sensor.sensorTypeId);
+    detailedSensors.push({ ...sensor, sensorType });
+  }
+
+  return { device: { ...device, sensors: detailedSensors } };
 };
 
 const updateOnboardingDevice = async (req) => {
   const { id } = req.params;
-  const { name, location, status } = req.body;
+  const { name, location, status, sensorTypeIds } = req.body;
 
   const device = await onboardingDeviceRepository.findById(id);
   if (!device) {
@@ -75,10 +96,20 @@ const updateOnboardingDevice = async (req) => {
   }
 
   const updatedDevice = await onboardingDeviceRepository.update(id, {
-    name: name || device.name,
-    location: location || device.location,
-    status: status || device.status,
+    name,
+    location,
+    status,
   });
+
+  if (sensorTypeIds && Array.isArray(sensorTypeIds)) {
+    await deviceSensorRepository.deleteByDeviceId(id);
+    for (const sensorTypeId of sensorTypeIds) {
+      await deviceSensorRepository.create({
+        deviceId: id,
+        sensorTypeId,
+      });
+    }
+  }
 
   return {
     message: "Onboarding device updated successfully",
@@ -88,7 +119,6 @@ const updateOnboardingDevice = async (req) => {
 
 const deleteOnboardingDevice = async (req) => {
   const { id } = req.params;
-
   const device = await onboardingDeviceRepository.findById(id);
   if (!device) {
     throw new CustomError({
