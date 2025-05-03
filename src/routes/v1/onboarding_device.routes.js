@@ -82,7 +82,7 @@ router.post(
  *       200:
  *         description: List of devices
  */
-router.get("/", authenticate, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const result = await onboardingDeviceController.getAllOnboardingDevices(
       req
