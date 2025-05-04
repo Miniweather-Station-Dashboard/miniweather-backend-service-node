@@ -1,8 +1,7 @@
 const pool = require("../config/db");
 
 class DeviceSensorRepository {
-
-    async create({ deviceId, sensorTypeId }, client = pool) {
+  async create({ deviceId, sensorTypeId }, client = pool) {
     const query = {
       text: `
         INSERT INTO device_sensors (device_id, sensor_type_id)
@@ -12,7 +11,7 @@ class DeviceSensorRepository {
       values: [deviceId, sensorTypeId],
     };
     const res = await client.query(query);
-    return res.rows[0]; 
+    return res.rows[0];
   }
 
   async findByDeviceAndSensor(deviceId, sensorTypeId) {
@@ -24,7 +23,7 @@ class DeviceSensorRepository {
       values: [deviceId, sensorTypeId],
     };
     const res = await pool.query(query);
-    return res.rows[0]; 
+    return res.rows[0];
   }
 
   async findByDeviceId(deviceId) {
@@ -36,7 +35,7 @@ class DeviceSensorRepository {
       values: [deviceId],
     };
     const res = await pool.query(query);
-    return res.rows; 
+    return res.rows;
   }
 
   async delete(deviceId, sensorTypeId) {
@@ -50,6 +49,32 @@ class DeviceSensorRepository {
     };
     const res = await pool.query(query);
     return res.rows[0];
+  }
+
+  async findByDeviceIdWithSensorType(deviceId) {
+    const query = {
+      text: `
+        SELECT
+          ds.id,
+          ds.device_id,
+          ds.sensor_type_id,
+          ds.created_at,
+          st.name AS sensor_type_name,
+          st.unit AS sensor_type_unit,
+          st.description AS sensor_type_description
+        FROM device_sensors ds
+        JOIN sensor_types st ON ds.sensor_type_id = st.id
+        WHERE ds.device_id = $1
+      `,
+      values: [deviceId],
+    };
+
+    const res = await pool.query(query);
+    return res.rows.map((sensor) => ({
+      name: sensor.sensor_type_name,
+      unit: sensor.sensor_type_unit,
+      description: sensor.sensor_type_description,
+    }));
   }
 }
 

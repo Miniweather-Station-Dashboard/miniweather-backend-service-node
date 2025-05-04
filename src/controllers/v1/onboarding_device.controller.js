@@ -72,15 +72,9 @@ const getOnboardingDeviceById = async (req) => {
     });
   }
 
-  const sensors = await deviceSensorRepository.findByDeviceId(id);
-  const detailedSensors = [];
+  const sensors = await deviceSensorRepository.findByDeviceIdWithSensorType(id);
 
-  for (const sensor of sensors) {
-    const sensorType = await sensorTypeRepository.findById(sensor.sensorTypeId);
-    detailedSensors.push({ ...sensor, sensorType });
-  }
-
-  return { device: { ...device, sensors: detailedSensors } };
+  return { device: { ...device, sensors } };
 };
 
 const updateOnboardingDevice = async (req) => {
