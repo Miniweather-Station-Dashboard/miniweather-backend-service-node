@@ -1,4 +1,4 @@
-const pool = require("../config/db");
+const {pool} = require("../config/db");
 
 class DeviceSensorRepository {
   async create({ deviceId, sensorTypeId }, client = pool) {

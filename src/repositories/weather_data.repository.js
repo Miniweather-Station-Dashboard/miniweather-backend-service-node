@@ -1,4 +1,4 @@
-const pool = require("../config/db");
+const { pool } = require("../config/db");
 
 class WeatherDataRepository {
   /**
@@ -9,7 +9,7 @@ class WeatherDataRepository {
    * @param {string} [options.timezone='UTC'] - Timezone for grouping
    * @returns {Promise<Array>} Array of minute-averaged records
    */
-  async getMinuteAverages({ startTime, endTime, timezone = 'UTC' }) {
+  async getMinuteAverages({ startTime, endTime, timezone = "UTC" }) {
     const query = {
       text: `
         SELECT
@@ -42,7 +42,7 @@ class WeatherDataRepository {
     const query = {
       text: `
         SELECT *
-        FROM records_01961f7aea7876039c5d2d1097af7819
+        FROM records_01959f37704b7c3284133d4637c0337c
         WHERE _updated_at BETWEEN $1 AND $2
         ORDER BY _updated_at ASC
         LIMIT $3
@@ -64,10 +64,16 @@ class WeatherDataRepository {
    * @param {string} [data.createdBy] - Optional user ID who created the record
    * @returns {Promise<Object>} The created record
    */
-  async create({ pressure, wind_speed, temperature, rainfall, createdBy = null }) {
+  async create({
+    pressure,
+    wind_speed,
+    temperature,
+    rainfall,
+    createdBy = null,
+  }) {
     const query = {
       text: `
-        INSERT INTO records_01961f7aea7876039c5d2d1097af7819
+        INSERT INTO records_01959f37704b7c3284133d4637c0337c
           (_id, _created_by, _updated_at, pressure, wind_speed, temperature, rainfall)
         VALUES
           (gen_random_uuid(), $1, NOW(), $2, $3, $4, $5)

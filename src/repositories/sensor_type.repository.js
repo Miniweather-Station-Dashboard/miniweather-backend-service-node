@@ -1,4 +1,4 @@
-const pool = require("../config/db");
+const {pool} = require("../config/db");
 
 class SensorTypeRepository {
   async findAllWithLimit(offset, limit = 100) {

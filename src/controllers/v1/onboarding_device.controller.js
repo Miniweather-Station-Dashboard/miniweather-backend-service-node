@@ -3,6 +3,10 @@ const CustomError = require("../../helpers/customError");
 const deviceSensorRepository = require("../../repositories/device_sensor.repository");
 const sensorTypeRepository = require("../../repositories/sensor_type.repository");
 const { withTransaction } = require("../../utils/dbTransaction");
+const { 
+  subscribeToDevice, 
+  unsubscribeFromDevice 
+} = require("../../mqtt/subscriber");
 
 const createOnboardingDevice = async (req) => {
   const { name, location, status, sensorTypeIds } = req.body;
@@ -33,6 +37,11 @@ const createOnboardingDevice = async (req) => {
           client
         );
       }
+    }
+
+    // Subscribe if device is active
+    if (status === "active") {
+      await subscribeToDevice(device.id);
     }
 
     return { message: "Device created", device };
@@ -105,6 +114,15 @@ const updateOnboardingDevice = async (req) => {
     }
   }
 
+  // Handle subscription changes if status was modified
+  if (status !== device.status) {
+    if (status === "active") {
+      await subscribeToDevice(id);
+    } else {
+      await unsubscribeFromDevice(id);
+    }
+  }
+
   return {
     message: "Onboarding device updated successfully",
     device: updatedDevice,
@@ -122,6 +140,12 @@ const deleteOnboardingDevice = async (req) => {
   }
 
   await onboardingDeviceRepository.delete(id);
+  
+  // Unsubscribe if device was active
+  if (device.status === "active") {
+    await unsubscribeFromDevice(id);
+  }
+
   return { message: "Onboarding device deleted successfully" };
 };
 

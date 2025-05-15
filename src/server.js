@@ -5,13 +5,11 @@ const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 const http = require("http");
-const socketIo = require("socket.io");
 
 const logger = require('./config/logger.js');
 const pool = require('./config/db.js');
 const { HTTP_PORT } = require("./config/socketConfig"); // Use same port or .env
 const initializeSocket = require("./socket");
-const { mqttSubscriber } = require("./mqtt/subscriber.js");
 
 const app = express();
 const server = http.createServer(app); // 👈 Create server from Express app
@@ -35,9 +33,12 @@ app.use('/v1', v1Routes);
 const setupSwagger = require('./config/swagger.js');
 setupSwagger(app);
 
-// Start the server
-server.listen(HTTP_PORT, () => {
-  logger.info(`Server (HTTP + Socket.IO) running on port ${HTTP_PORT}`);
+pool.checkDatabaseConnection().then(() => {
+  const { mqttSubscriber } = require("./mqtt/subscriber.js");
+
+  server.listen(HTTP_PORT, () => {
+    logger.info(`Server (HTTP + Socket.IO) running on port ${HTTP_PORT}`);
+  });
 });
 
 module.exports = { app, pool };

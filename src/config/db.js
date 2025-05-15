@@ -17,10 +17,8 @@ const checkDatabaseConnection = async () => {
     console.log("✅ Database connected successfully");
   } catch (err) {
     console.error("❌ Database connection failed:", err.message);
-    process.exit(1); 
+    process.exit(1);
   }
 };
 
-checkDatabaseConnection();
-
-module.exports = pool;
+module.exports = { pool, checkDatabaseConnection };

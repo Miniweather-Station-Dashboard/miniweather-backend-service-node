@@ -1,38 +1,107 @@
 const mqtt = require("mqtt");
-const { MQTT_BROKER_URL, MQTT_TOPIC, MQTT_HYPERBASE_TOPIC } = require("../config/mqttConfig");
+const {
+  MQTT_BROKER_URL,
+  MQTT_TOPIC,
+  MQTT_HYPERBASE_TOPIC,
+} = require("../config/mqttConfig");
 const logger = require("../utils/logger");
-
+const { pool } = require("../config/db");
 const { publishMessage } = require("./publisher");
 
-// Use the MQTT broker URL as in your original code
+// Track active subscriptions
+const activeSubscriptions = new Set();
 const mqttSubscriber = mqtt.connect(MQTT_BROKER_URL);
 
-mqttSubscriber.on("connect", () => {
-  logger.info("==> MQTT connected");
+// Initialize MQTT connection and subscriptions
+const initializeSubscriptions = async () => {
+  try {
+    const result = await pool.query(
+      "SELECT id FROM onboarding_devices WHERE status = 'active'"
+    );
 
-  // Subscribe to the MQTT topic
-  mqttSubscriber.subscribe(MQTT_TOPIC, (err) => {
-    if (!err) {
-      logger.info(`==> Subscribed to ${MQTT_TOPIC}`);
-    } else {
-      logger.error(`==> Error subscribing to ${MQTT_TOPIC}: ${err.message}`);
+    for (const { id } of result.rows) {
+      await subscribeToDevice(id);
     }
+  } catch (err) {
+    logger.error("Error initializing subscriptions:", err);
+  }
+};
+
+// Subscribe to a device topic
+const subscribeToDevice = async (deviceId) => {
+  const topic = `/devices/${deviceId}`;
+
+  return new Promise((resolve, reject) => {
+    if (activeSubscriptions.has(topic)) {
+      return resolve();
+    }
+
+    mqttSubscriber.subscribe(topic, (err) => {
+      if (err) {
+        logger.error(`Failed to subscribe to ${topic}: ${err.message}`);
+        reject(err);
+      } else {
+        logger.info(`Subscribed to device topic ${topic}`);
+        activeSubscriptions.add(topic);
+        resolve();
+      }
+    });
   });
-});
+};
+
+// Unsubscribe from a device topic
+const unsubscribeFromDevice = async (deviceId) => {
+  const topic = `/devices/${deviceId}`;
+
+  return new Promise((resolve, reject) => {
+    if (!activeSubscriptions.has(topic)) {
+      return resolve();
+    }
+
+    mqttSubscriber.unsubscribe(topic, (err) => {
+      if (err) {
+        logger.error(`Failed to unsubscribe from ${topic}: ${err.message}`);
+        reject(err);
+      } else {
+        logger.info(`Unsubscribed from device topic ${topic}`);
+        activeSubscriptions.delete(topic);
+        resolve();
+      }
+    });
+  });
+};
 
 mqttSubscriber.on("message", (topic, message) => {
-  // logger.info(`Received message from ${topic}: ${message.toString()}`);
-  publishMessage(MQTT_HYPERBASE_TOPIC, message); // Publish the message to the MQTT topic
-  // Publish the message to the MQTT topic
-  global.io.emit("sensorData", message.toString()); // Emit message to Socket.IO clients
+  try {
+    publishMessage(MQTT_HYPERBASE_TOPIC, message);
+    console.log("MQTT message received:", topic, message.toString());
+
+    if (global.io) {
+      global.io.emit(topic, message.toString());
+    }
+  } catch (err) {
+    console.log("Error processing MQTT message:", err);
+    logger.error("Error processing MQTT message:", err);
+  }
+});
+
+mqttSubscriber.on("connect", () => {
+  logger.info("MQTT connected");
+  initializeSubscriptions();
 });
 
 mqttSubscriber.on("close", () => {
-  logger.info("==> MQTT connection closed");
+  logger.info("MQTT connection closed");
+  activeSubscriptions.clear();
 });
 
 mqttSubscriber.on("error", (err) => {
-  logger.error("==> MQTT error:", err);
+  logger.error("MQTT error:", err);
 });
 
-module.exports = { mqttSubscriber };
+module.exports = {
+  mqttSubscriber,
+  subscribeToDevice,
+  unsubscribeFromDevice,
+  initializeSubscriptions,
+};
