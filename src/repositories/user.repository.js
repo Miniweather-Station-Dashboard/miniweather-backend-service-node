@@ -1,4 +1,4 @@
-const {pool} = require("../config/db");
+const { pool } = require("../config/db");
 
 class UserRepository {
   async findByEmail(email) {
@@ -10,12 +10,12 @@ class UserRepository {
     return res.rows[0];
   }
 
-  async create({ name, email, passwordHash, verificationCode }) {
+  async create({ name, email, passwordHash, is_active }) {
     const res = await pool.query(
-      `INSERT INTO users (name, email, password_hash, verification_code)
+      `INSERT INTO users (name, email, password_hash,is_active)
        VALUES ($1, $2, $3, $4)
        RETURNING id, name, email, role, is_active`,
-      [name, email, passwordHash, verificationCode]
+      [name, email, passwordHash, is_active]
     );
     return res.rows[0];
   }
@@ -31,7 +31,7 @@ class UserRepository {
     );
     return res.rows[0];
   }
-  
+
   async saveRefreshToken({ userId, refreshToken, expiresAt }) {
     const query = {
       text: `
@@ -41,7 +41,7 @@ class UserRepository {
       `,
       values: [userId, refreshToken, expiresAt],
     };
-  
+
     const res = await pool.query(query);
     return res.rows[0];
   }
@@ -56,10 +56,10 @@ class UserRepository {
       `,
       values: [refreshToken],
     };
-  
+
     const res = await pool.query(query);
     return res.rows[0];
-  } 
+  }
 
   async revokeRefreshToken(tokenId) {
     const query = {
@@ -70,7 +70,7 @@ class UserRepository {
       `,
       values: [tokenId],
     };
-  
+
     await pool.query(query);
   }
   async revokeAllRefreshTokens(userId) {
@@ -81,10 +81,10 @@ class UserRepository {
         WHERE user_id = $1`,
       values: [userId],
     };
-  
+
     await pool.query(query);
   }
-  
+
   async updateVerificationCode(email, code) {
     const query = {
       text: `
@@ -108,6 +108,70 @@ class UserRepository {
       values: [passwordHash, email],
     };
     await pool.query(query);
+  }
+  async findAllPaginated({ page = 1, limit = 10 }) {
+    const offset = (page - 1) * limit;
+    const query = {
+      text: `
+        SELECT id, name, email, role, is_active, created_at
+        FROM users
+        ORDER BY created_at DESC
+        LIMIT $1 OFFSET $2
+      `,
+      values: [limit, offset],
+    };
+    const res = await pool.query(query);
+    return res.rows;
+  }
+
+  async findById(id) {
+    const query = {
+      text: `
+        SELECT id, name, email, role, is_active, created_at
+        FROM users
+        WHERE id = $1
+      `,
+      values: [id],
+    };
+    const res = await pool.query(query);
+    return res.rows[0];
+  }
+
+  async update(id, { name, role }) {
+    const query = {
+      text: `
+        UPDATE users
+        SET name = COALESCE($2, name),
+            role = COALESCE($3, role),
+            updated_at = NOW()
+        WHERE id = $1
+        RETURNING id, name, email, role, is_active
+      `,
+      values: [id, name, role],
+    };
+    const res = await pool.query(query);
+    return res.rows[0];
+  }
+
+  async delete(id) {
+    const query = {
+      text: `
+        DELETE FROM users
+        WHERE id = $1
+        RETURNING id
+      `,
+      values: [id],
+    };
+    const res = await pool.query(query);
+    return res.rows[0];
+  }
+
+  async countAll() {
+    const query = {
+      text: `SELECT COUNT(*) FROM users`,
+    };
+    const res = await pool.query(query);
+    return parseInt(res.rows[0].count);
   }
 }
 

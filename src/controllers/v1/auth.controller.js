@@ -6,32 +6,44 @@ const {
 } = require("../../helpers/generateVerificationCode");
 const jwt = require("jsonwebtoken");
 const CustomError = require("../../helpers/customError");
+const generateSecurePassword = require("../../helpers/generateSecurePassword");
 
 const register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, role = "user", is_active = true } = req.body;
   const normalizedEmail = email.toLowerCase();
 
+  if (!req.user || req.user.role !== "superAdmin") {
+    throw new CustomError({
+      message: "Only super admin can register new users",
+      statusCode: 403,
+    });
+  }
   const userExists = await userRepository.findByEmail(normalizedEmail);
   if (userExists)
     throw new CustomError({ message: "User already exists", statusCode: 400 });
 
-  const passwordHash = await bcrypt.hash(password, 10);
-  const verificationCode = generateVerificationCode();
+  const generatedPassword = generateSecurePassword();
+  const passwordHash = await bcrypt.hash(generatedPassword, 10);
 
   const user = await userRepository.create({
     name,
     email: normalizedEmail,
     passwordHash,
-    verificationCode,
+    is_active,
+    role,
   });
 
   await emailService.sendRegisterMail({
     to: normalizedEmail,
     name,
-    code: verificationCode,
+    email: normalizedEmail,
+    password: generatedPassword, 
   });
 
-  return { message: "User registered. Please verify your email.", user };
+  return {
+    message: "User created. Credentials sent via email.",
+    user: { id: user.id, email: user.email }, // Don't return password in response
+  };
 };
 
 const login = async (req, res) => {
@@ -143,7 +155,7 @@ const logout = async (req, res) => {
   return { message: "Logged out successfully" };
 };
 
-const getCurrentUser = async (req,res) => {
+const getCurrentUser = async (req, res) => {
   const user = req.user;
   const existingUser = await userRepository.findByEmail(user.email);
 
@@ -173,7 +185,10 @@ const forgotPassword = async (req) => {
 
   const verificationCode = generateVerificationCode();
 
-  await userRepository.updateVerificationCode(normalizedEmail, verificationCode);
+  await userRepository.updateVerificationCode(
+    normalizedEmail,
+    verificationCode
+  );
 
   await emailService.sendResetPasswordMail({
     to: normalizedEmail,
@@ -234,7 +249,6 @@ const resetPassword = async (req, res) => {
 
   return { message: "Password has been reset successfully" };
 };
-
 
 module.exports = {
   register,

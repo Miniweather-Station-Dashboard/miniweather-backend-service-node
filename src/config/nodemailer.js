@@ -27,31 +27,39 @@ class EmailService {
    * @param {string} options.name
    * @param {string} options.code
    */
-  async sendRegisterMail({ to, name, code }) {
+  async sendRegisterMail({ to, name, email, password }) {
     const mailOptions = {
       from: `"MiniWeather Admin Page" <${process.env.GMAIL_USER}>`,
       to,
-      subject: "Verify Your Email Address",
+      subject: "Your Account Has Been Created",
       html: `
-        <h2>Hello, ${name} 👋</h2>
-        <p>Use the following code to verify your email:</p>
-        <h1 style="letter-spacing: 4px;">${code}</h1>
-        <p>This code will expire in 10 minutes.</p>
-        <br/>
-        <small>If you did not sign up, you can ignore this message.</small>
-      `,
+      <h2>Welcome, ${name} 👋</h2>
+      <p>Your account has been created by the administrator.</p>
+      
+      <h3>Login Credentials:</h3>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Temporary Password:</strong> ${password}</p>
+
+      <p style="color: #ff0000; font-weight: bold;">
+        For security, please change your password after first login.
+      </p>
+
+      <small>
+        If you did not request this account, contact the administrator immediately.
+      </small>
+    `,
     };
-  
+
     try {
       const info = await this.transporter.sendMail(mailOptions);
-      logger.info("Verification code sent:", info.messageId);
+      logger.info("Credentials email sent:", info.messageId);
       return info;
     } catch (error) {
-      logger.error("Failed to send verification email:", error);
+      logger.error("Failed to send credentials email:", error);
       throw error;
     }
   }
-  
+
   async sendResetPasswordMail({ to, name, code }) {
     const mailOptions = {
       from: `"MiniWeather Admin Page" <${process.env.GMAIL_USER}>`,

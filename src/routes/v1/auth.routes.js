@@ -42,24 +42,29 @@ const authenticate = require("../../middlewares/auth.middleware");
  *       201:
  *         description: User registered successfully
  */
-router.post("/register", validate("register"), async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty())
-      throw new CustomError({
-        message: "Validation failed",
-        statusCode: 400,
-        errors: errors.array(),
-      });
-    const result = await authController.register(req, res);
-    res
-      .status(201)
-      .json(successResponse({ message: result.message, data: result.user }));
-  } catch (err) {
-    logger.error("Error in register:", err);
-    await failedResponse({ res, req, errors: err });
+router.post(
+  "/register",
+  authenticate,
+  validate("register"),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty())
+        throw new CustomError({
+          message: "Validation failed",
+          statusCode: 400,
+          errors: errors.array(),
+        });
+      const result = await authController.register(req, res);
+      res
+        .status(201)
+        .json(successResponse({ message: result.message, data: result.user }));
+    } catch (err) {
+      logger.error("Error in register:", err);
+      await failedResponse({ res, req, errors: err });
+    }
   }
-});
+);
 
 /**
  * @swagger

@@ -14,11 +14,6 @@ exports.validate = (method) => {
           .exists().withMessage("Email is required")
           .bail()
           .isEmail().withMessage("Email must be valid"),
-
-        body("password")
-          .exists().withMessage("Password is required")
-          .bail()
-          .isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
       ];
     }
 
