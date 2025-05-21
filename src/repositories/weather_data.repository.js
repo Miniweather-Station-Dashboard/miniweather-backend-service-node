@@ -10,17 +10,16 @@ class WeatherDataRepository {
    * @param {string} [options.timezone='UTC'] - Timezone for grouping
    * @returns {Promise<Array>} Array of minute-averaged records
    */
-  async getMinuteAverages({ startTime, endTime, tableName, timezone = "UTC" }) {
+  async getMinuteAverages({ startTime, endTime, tableName, timezone = "UTC", fields= [] }) {
     const sanitizedTable = this._sanitizeTableName(tableName);
+    const avgSelect = this._buildAvgSelect(fields);
+
 
     const query = {
       text: `
         SELECT
           date_trunc('minute', _updated_at AT TIME ZONE $3) as minute,
-          AVG(pressure) as avg_pressure,
-          AVG(wind_speed) as avg_wind_speed,
-          AVG(temperature) as avg_temperature,
-          AVG(rainfall) as avg_rainfall
+          ${avgSelect}
         FROM ${sanitizedTable}
         WHERE _updated_at BETWEEN $1 AND $2
         GROUP BY minute
@@ -104,6 +103,13 @@ class WeatherDataRepository {
     }
     return `"${tableName}"`; 
   }
+
+  _buildAvgSelect(fields = []) {
+    return fields
+      .map(f => `AVG(${f}) as avg_${f}`)
+      .join(', ');
+  }
+
 }
 
 module.exports = new WeatherDataRepository();

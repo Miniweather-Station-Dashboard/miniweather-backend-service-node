@@ -4,6 +4,11 @@ exports.validate = (method) => {
     switch (method) {
         case "getWeatherData": {
             return [
+                query("deviceId")
+                    .notEmpty()
+                    .withMessage("Device ID is required")
+                    .isString()
+                    .withMessage("Device ID must be a string"),
                 query("startTime")
                     .notEmpty()
                     .withMessage("Start time is required")

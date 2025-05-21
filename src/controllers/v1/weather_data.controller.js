@@ -1,8 +1,15 @@
 const weatherDataRepository = require("../../repositories/weather_data.repository");
 const CustomError = require("../../helpers/customError");
+const collectionsRepository = require("../../repositories/collections.repository");
 
 const getWeatherDataAverages = async (req) => {
-  let { startTime, endTime, timezone, interval = 'minute', deviceId } = req.query;
+  let {
+    startTime,
+    endTime,
+    timezone,
+    interval = "minute",
+    deviceId,
+  } = req.query;
 
   // Validate required fields
   if (!deviceId) {
@@ -18,6 +25,18 @@ const getWeatherDataAverages = async (req) => {
       statusCode: 400,
     });
   }
+
+  const schemaFields = await collectionsRepository.getSchemaFieldsByDeviceId(
+    deviceId
+  );
+  if (!schemaFields) {
+    throw new CustomError({
+      message: "Device schema not found",
+      statusCode: 404,
+    });
+  }
+
+  const fields = Object.keys(schemaFields);
 
   startTime = new Date(startTime);
   endTime = new Date(endTime);
@@ -37,7 +56,7 @@ const getWeatherDataAverages = async (req) => {
   }
 
   const maxRange = 7 * 24 * 60 * 60 * 1000;
-  if ((endTime - startTime) > maxRange) {
+  if (endTime - startTime > maxRange) {
     throw new CustomError({
       message: "Time range cannot exceed 7 days",
       statusCode: 400,
@@ -50,19 +69,21 @@ const getWeatherDataAverages = async (req) => {
   // Fetch data from correct table
   let data;
   switch (interval) {
-    case 'minute':
+    case "minute":
       data = await weatherDataRepository.getMinuteAverages({
         startTime,
         endTime,
-        timezone: timezone || 'UTC',
-        tableName
+        timezone: timezone || "UTC",
+        tableName,
+        fields,
       });
       break;
-    case 'raw':
+    case "raw":
       data = await weatherDataRepository.getDataInTimeRange({
         startTime,
         endTime,
-        tableName
+        tableName,
+        fields,
       });
       break;
     default:
@@ -77,11 +98,11 @@ const getWeatherDataAverages = async (req) => {
     startTime: startTime.toISOString(),
     endTime: endTime.toISOString(),
     interval,
-    timezone: timezone || 'UTC',
-    data
+    timezone: timezone || "UTC",
+    data,
   };
 };
 
 module.exports = {
-  getWeatherDataAverages
+  getWeatherDataAverages,
 };

@@ -90,6 +90,27 @@ class CollectionsRepository {
 
     await pool.query(insertSQL, [ruleId, projectId, tokenId, deviceId]);
   }
+
+  async getSchemaFieldsByDeviceId(deviceId) {
+    const query = {
+      text: `SELECT schema_fields FROM collections WHERE id = $1`,
+      values: [deviceId],
+    };
+    const res = await pool.query(query);
+    if (res.rowCount === 0) return null;
+
+    const { schema_fields } = res.rows[0];
+
+    if (typeof schema_fields === "string") {
+      try {
+        return JSON.parse(schema_fields);
+      } catch (e) {
+        throw new Error("Failed to parse schema_fields as JSON");
+      }
+    }
+
+    return schema_fields;
+  }
 }
 
 module.exports = new CollectionsRepository();
