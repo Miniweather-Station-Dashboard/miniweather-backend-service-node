@@ -1,4 +1,4 @@
-const {pool} = require("../config/db");
+const {pool} = require("../config/postgre");
 
 exports.successResponse = ({ message = "Success", data = null, code = 200 }) => {
   return {

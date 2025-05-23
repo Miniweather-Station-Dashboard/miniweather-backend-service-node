@@ -1,5 +1,5 @@
 // repositories/db_transaction.js
-const {pool} = require("../config/db");
+const {pool} = require("../config/postgre");
 
 const withTransaction = async (callback) => {
   const client = await pool.connect();

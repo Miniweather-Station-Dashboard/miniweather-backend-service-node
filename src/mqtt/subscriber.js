@@ -4,7 +4,7 @@ const {
   MQTT_HYPERBASE_TOPIC,
 } = require("../config/mqttConfig");
 const logger = require("../utils/logger");
-const { pool } = require("../config/db");
+const { pool } = require("../config/postgre");
 const { publishMessage } = require("./publisher");
 
 // Track active subscriptions

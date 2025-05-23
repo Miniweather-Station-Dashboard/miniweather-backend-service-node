@@ -8,7 +8,7 @@ const {
   unsubscribeFromDevice,
 } = require("../../mqtt/subscriber");
 const { buildSchemaFields } = require("../../helpers/buildSchemaFields");
-const collectionsRepository = require("../../repositories/collections.repository");
+const collectionsRepository = require("../../repositories/collections/collections.factory");
 
 const createOnboardingDevice = async (req) => {
   const { name, location, status, sensorTypeIds } = req.body;

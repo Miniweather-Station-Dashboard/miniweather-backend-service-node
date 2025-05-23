@@ -1,7 +1,7 @@
-const { pool } = require("../config/db");
+const { pool } = require("../../config/postgre");
 const crypto = require("crypto");
 
-class CollectionsRepository {
+class CollectionsRepositoryPostgreSQL {
   async create({ id, projectId, name, schemaFields }, client = pool) {
     const query = {
       text: `
@@ -104,7 +104,7 @@ class CollectionsRepository {
     if (typeof schema_fields === "string") {
       try {
         return JSON.parse(schema_fields);
-      } catch (e) {
+      } catch {
         throw new Error("Failed to parse schema_fields as JSON");
       }
     }
@@ -113,4 +113,4 @@ class CollectionsRepository {
   }
 }
 
-module.exports = new CollectionsRepository();
+module.exports = new CollectionsRepositoryPostgreSQL();

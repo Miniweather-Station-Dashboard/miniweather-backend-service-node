@@ -1,6 +1,6 @@
 const weatherDataRepository = require("../../repositories/weather_data.repository");
 const CustomError = require("../../helpers/customError");
-const collectionsRepository = require("../../repositories/collections.repository");
+const collectionsRepository = require("../../repositories/collections/collections.postgre.repository");
 
 const getWeatherDataAverages = async (req) => {
   let {

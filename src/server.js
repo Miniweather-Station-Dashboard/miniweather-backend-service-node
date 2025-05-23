@@ -1,13 +1,13 @@
 require("dotenv").config();
 
-const express = require('express');
-const helmet = require('helmet');
-const cors = require('cors');
-const morgan = require('morgan');
+const express = require("express");
+const helmet = require("helmet");
+const cors = require("cors");
+const morgan = require("morgan");
 const http = require("http");
 
-const logger = require('./config/logger.js');
-const pool = require('./config/db.js');
+const logger = require("./config/logger.js");
+const pool = require("./config/postgre.js");
 const { HTTP_PORT } = require("./config/socketConfig"); // Use same port or .env
 const initializeSocket = require("./socket");
 
@@ -21,16 +21,16 @@ initializeSocket(server);
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
-app.use(morgan('dev'));
+app.use(morgan("dev"));
 
 // Routes
-const exampleRoutes = require('./routes/example.route.js');
-const v1Routes = require('./routes/v1');
-app.use('/api/example', exampleRoutes);
-app.use('/v1', v1Routes);
+const exampleRoutes = require("./routes/example.route.js");
+const v1Routes = require("./routes/v1");
+app.use("/api/example", exampleRoutes);
+app.use("/v1", v1Routes);
 
 // Swagger
-const setupSwagger = require('./config/swagger.js');
+const setupSwagger = require("./config/swagger.js");
 setupSwagger(app);
 
 pool.checkDatabaseConnection().then(() => {
