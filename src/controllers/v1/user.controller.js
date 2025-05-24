@@ -1,17 +1,19 @@
 const userRepository = require("../../repositories/user.repository");
 const CustomError = require("../../helpers/customError");
 
-
 const getAllUsers = async (req) => {
   const { page = 1, limit = 10 } = req.query;
-  const records = await userRepository.findAllPaginated({ page, limit });
-  return { records };
+  const { records, total } = await userRepository.findAllPaginated({
+    page,
+    limit,
+  });
+  return { users: records, total };
 };
 
 const getUserById = async (req) => {
   const { id } = req.params;
   const record = await userRepository.findById(id);
-  
+
   if (!record) {
     throw new CustomError({
       message: "User not found",
@@ -19,7 +21,7 @@ const getUserById = async (req) => {
     });
   }
 
-  return { 
+  return {
     user: {
       id: record.id,
       name: record.name,
@@ -27,7 +29,7 @@ const getUserById = async (req) => {
       role: record.role,
       is_active: record.is_active,
       createdAt: record.createdAt,
-    }
+    },
   };
 };
 
@@ -56,9 +58,9 @@ const updateUser = async (req) => {
     role: role || existing.role,
   });
 
-  return { 
+  return {
     message: "User updated successfully",
-    user: updated 
+    user: updated,
   };
 };
 
@@ -66,7 +68,7 @@ const updateUser = async (req) => {
 const deleteUser = async (req) => {
   const { id } = req.params;
   const existing = await userRepository.findById(id);
-  
+
   if (!existing) {
     throw new CustomError({
       message: "User not found",

@@ -18,7 +18,6 @@ ws.on('close', () => {
 });
 
 ws.on('error', (err) => {
-    console.log(err)
     logger.error("==> WebSocket error:", err);
 });
 

@@ -109,20 +109,35 @@ class UserRepository {
     };
     await pool.query(query);
   }
+  
   async findAllPaginated({ page = 1, limit = 10 }) {
-    const offset = (page - 1) * limit;
-    const query = {
-      text: `
-        SELECT id, name, email, role, is_active, created_at
-        FROM users
-        ORDER BY created_at DESC
-        LIMIT $1 OFFSET $2
-      `,
-      values: [limit, offset],
-    };
-    const res = await pool.query(query);
-    return res.rows;
-  }
+  const offset = (page - 1) * limit;
+  
+  // Get paginated users
+  const usersQuery = {
+    text: `
+      SELECT id, name, email, role, is_active as "isActive", created_at as "createdAt"
+      FROM users
+      ORDER BY created_at DESC
+      LIMIT $1 OFFSET $2
+    `,
+    values: [limit, offset],
+  };
+
+  const countQuery = {
+    text: 'SELECT COUNT(*) FROM users',
+  };
+
+  const [usersResult, countResult] = await Promise.all([
+    pool.query(usersQuery),
+    pool.query(countQuery)
+  ]);
+
+  return {
+    records: usersResult.rows,
+    total: parseInt(countResult.rows[0].count, 10)
+  };
+}
 
   async findById(id) {
     const query = {

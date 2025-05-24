@@ -31,8 +31,6 @@ const getWeatherDataAverages = async (req) => {
     });
   }
 
-  console.log("Start Time:", startTime);
-  console.log("End Time:", endTime);
   // Limit range to maximum 7 days to prevent heavy queries
   const maxRange = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
   if ((endTime - startTime) > maxRange) {
