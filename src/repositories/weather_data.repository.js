@@ -6,10 +6,13 @@ class WeatherDataRepository {
    * @param {Object} options - Query options
    * @param {Date} options.startTime - Start of time range
    * @param {Date} options.endTime - End of time range
+   * @param {string} options.tableName - Target records table name
    * @param {string} [options.timezone='UTC'] - Timezone for grouping
    * @returns {Promise<Array>} Array of minute-averaged records
    */
-  async getMinuteAverages({ startTime, endTime, timezone = "UTC" }) {
+  async getMinuteAverages({ startTime, endTime, tableName, timezone = "UTC" }) {
+    const sanitizedTable = this._sanitizeTableName(tableName);
+
     const query = {
       text: `
         SELECT
@@ -18,7 +21,7 @@ class WeatherDataRepository {
           AVG(wind_speed) as avg_wind_speed,
           AVG(temperature) as avg_temperature,
           AVG(rainfall) as avg_rainfall
-        FROM records_01961f7aea7876039c5d2d1097af7819
+        FROM ${sanitizedTable}
         WHERE _updated_at BETWEEN $1 AND $2
         GROUP BY minute
         ORDER BY minute ASC
@@ -35,14 +38,17 @@ class WeatherDataRepository {
    * @param {Object} options - Query options
    * @param {Date} options.startTime - Start of time range
    * @param {Date} options.endTime - End of time range
+   * @param {string} options.tableName - Target records table name
    * @param {number} [options.limit=1000] - Maximum number of records to return
    * @returns {Promise<Array>} Array of raw records
    */
-  async getDataInTimeRange({ startTime, endTime, limit = 1000 }) {
+  async getDataInTimeRange({ startTime, endTime, tableName, limit = 1000 }) {
+    const sanitizedTable = this._sanitizeTableName(tableName);
+
     const query = {
       text: `
         SELECT *
-        FROM records_01959f37704b7c3284133d4637c0337c
+        FROM ${sanitizedTable}
         WHERE _updated_at BETWEEN $1 AND $2
         ORDER BY _updated_at ASC
         LIMIT $3
@@ -55,25 +61,28 @@ class WeatherDataRepository {
   }
 
   /**
-   * Create a new weather data record
-   * @param {Object} data - Weather data to insert
-   * @param {number} data.pressure - Pressure value
-   * @param {number} data.wind_speed - Wind speed value
-   * @param {number} data.temperature - Temperature value
-   * @param {number} data.rainfall - Rainfall value
-   * @param {string} [data.createdBy] - Optional user ID who created the record
-   * @returns {Promise<Object>} The created record
+   * Insert new weather data record into specified table
+   * @param {Object} options
+   * @param {string} options.tableName - Target table
+   * @param {number} options.pressure
+   * @param {number} options.wind_speed
+   * @param {number} options.temperature
+   * @param {number} options.rainfall
+   * @param {string} [options.createdBy]
    */
   async create({
+    tableName,
     pressure,
     wind_speed,
     temperature,
     rainfall,
     createdBy = null,
   }) {
+    const sanitizedTable = this._sanitizeTableName(tableName);
+
     const query = {
       text: `
-        INSERT INTO records_01959f37704b7c3284133d4637c0337c
+        INSERT INTO ${sanitizedTable}
           (_id, _created_by, _updated_at, pressure, wind_speed, temperature, rainfall)
         VALUES
           (gen_random_uuid(), $1, NOW(), $2, $3, $4, $5)
@@ -84,6 +93,16 @@ class WeatherDataRepository {
 
     const res = await pool.query(query);
     return res.rows[0];
+  }
+
+  /**
+   * Sanitize table name to prevent SQL injection
+   */
+  _sanitizeTableName(tableName) {
+    if (!/^records_[a-zA-Z0-9_]+$/.test(tableName)) {
+      throw new Error("Invalid table name");
+    }
+    return `"${tableName}"`; 
   }
 }
 
