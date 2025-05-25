@@ -3,10 +3,12 @@ const CustomError = require("../../helpers/customError");
 const deviceSensorRepository = require("../../repositories/device_sensor.repository");
 const sensorTypeRepository = require("../../repositories/sensor_type.repository");
 const { withTransaction } = require("../../utils/dbTransaction");
-const { 
-  subscribeToDevice, 
-  unsubscribeFromDevice 
+const {
+  subscribeToDevice,
+  unsubscribeFromDevice,
 } = require("../../mqtt/subscriber");
+const { buildSchemaFields } = require("../../helpers/buildSchemaFields");
+const collectionsRepository = require("../../repositories/collections.repository");
 
 const createOnboardingDevice = async (req) => {
   const { name, location, status, sensorTypeIds } = req.body;
@@ -38,6 +40,20 @@ const createOnboardingDevice = async (req) => {
         );
       }
     }
+
+    const schemaFields = await buildSchemaFields(sensorTypeIds || []);
+
+    await collectionsRepository.create(
+      {
+        id: device.id,
+        name,
+        projectId: process.env.HYPERBASE_PROJECT_ID,
+        schemaFields: JSON.stringify(schemaFields),
+      },
+      client
+    );
+
+    await collectionsRepository.createCollectionTable(device.id, schemaFields);
 
     // Subscribe if device is active
     if (status === "active") {
@@ -140,7 +156,7 @@ const deleteOnboardingDevice = async (req) => {
   }
 
   await onboardingDeviceRepository.delete(id);
-  
+
   // Unsubscribe if device was active
   if (device.status === "active") {
     await unsubscribeFromDevice(id);
