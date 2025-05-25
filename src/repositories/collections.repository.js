@@ -64,6 +64,32 @@ class CollectionsRepository {
 
     await pool.query(createTableSQL);
   }
+
+  async makeCollectionRules(deviceId) {
+    const tokenId = process.env.HYPERBASE_TOKEN_ID;
+    const projectId = process.env.HYPERBASE_PROJECT_ID;
+
+    if (!tokenId) {
+      throw new Error("SYSTEM_TOKEN_ID environment variable is not set");
+    }
+    if (!projectId) {
+      throw new Error("PROJECT_ID environment variable is not set");
+    }
+
+    const ruleId = this.generateId();
+
+    const insertSQL = `
+      INSERT INTO collection_rules (
+        id, created_at, updated_at, project_id, token_id, collection_id,
+        find_one, find_many, insert_one, update_one, delete_one
+      ) VALUES (
+        $1, NOW(), NOW(), $2, $3, $4,
+        'all', 'all', true, 'all', 'all'
+      )
+    `;
+
+    await pool.query(insertSQL, [ruleId, projectId, tokenId, deviceId]);
+  }
 }
 
 module.exports = new CollectionsRepository();

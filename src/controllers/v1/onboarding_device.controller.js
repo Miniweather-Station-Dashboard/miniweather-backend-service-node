@@ -54,6 +54,7 @@ const createOnboardingDevice = async (req) => {
     );
 
     await collectionsRepository.createCollectionTable(device.id, schemaFields);
+    await collectionsRepository.makeCollectionRules(device.id)
 
     // Subscribe if device is active
     if (status === "active") {
