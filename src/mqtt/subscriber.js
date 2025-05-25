@@ -1,7 +1,6 @@
 const mqtt = require("mqtt");
 const {
   MQTT_BROKER_URL,
-  MQTT_TOPIC,
   MQTT_HYPERBASE_TOPIC,
 } = require("../config/mqttConfig");
 const logger = require("../utils/logger");
@@ -11,6 +10,9 @@ const { publishMessage } = require("./publisher");
 // Track active subscriptions
 const activeSubscriptions = new Set();
 const mqttSubscriber = mqtt.connect(MQTT_BROKER_URL);
+
+const project_id = process.env.HYPERBASE_PROJECT_ID
+const token_id = process.env.HYPERBASE_TOKEN_ID
 
 // Initialize MQTT connection and subscriptions
 const initializeSubscriptions = async () => {
@@ -73,7 +75,8 @@ const unsubscribeFromDevice = async (deviceId) => {
 
 mqttSubscriber.on("message", (topic, message) => {
   try {
-    publishMessage(MQTT_HYPERBASE_TOPIC, message);
+    const collection_id = topic.split("/")[2];
+    publishMessage(MQTT_HYPERBASE_TOPIC, message, project_id, token_id, collection_id);
     console.log("MQTT message received:", topic, message.toString());
 
     if (global.io) {
