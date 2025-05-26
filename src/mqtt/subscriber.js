@@ -81,6 +81,7 @@ mqttSubscriber.on("message", (topic, message) => {
 
     if (global.io) {
       global.io.emit(topic, message.toString());
+      console.log("Emitted to socket.io:", topic, message.toString());
     }
   } catch (err) {
     console.log("Error processing MQTT message:", err);

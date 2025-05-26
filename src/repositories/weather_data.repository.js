@@ -106,7 +106,7 @@ class WeatherDataRepository {
 
   _buildAvgSelect(fields = []) {
     return fields
-      .map(f => `AVG(${f}) as avg_${f}`)
+      .map(f => `AVG(${f}) as ${f}`)
       .join(', ');
   }
 
