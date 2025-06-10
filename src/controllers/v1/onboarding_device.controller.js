@@ -68,10 +68,12 @@ const createOnboardingDevice = async (req) => {
 const getAllOnboardingDevices = async (req) => {
   const limit = parseInt(req.query.limit, 10) || 10;
   const offset = parseInt(req.query.offset, 10) || 0;
-  const devices = await onboardingDeviceRepository.findAllWithLimit(
-    limit,
-    offset
-  );
+  
+  const [devices, totalCount] = await Promise.all([
+    onboardingDeviceRepository.findAllWithLimit(limit, offset),
+    onboardingDeviceRepository.countAll(),
+  ]);
+
   for (const device of devices) {
     const sensors = await deviceSensorRepository.findByDeviceId(device.id);
     device.sensors = [];
@@ -84,7 +86,8 @@ const getAllOnboardingDevices = async (req) => {
     }
   }
 
-  return { devices };
+
+  return { devices, totalCount };
 };
 
 const getOnboardingDeviceById = async (req) => {

@@ -14,6 +14,14 @@ class OnboardingDeviceRepository {
     const res = await pool.query(query);
     return res.rows; 
   }
+    async countAll() {
+    const query = {
+      text: `SELECT COUNT(*) FROM onboarding_devices`,
+    };
+    const res = await pool.query(query);
+   
+    return parseInt(res.rows[0].count, 10);
+  }
 
   async findById(id) {
     const query = {
