@@ -1,6 +1,6 @@
-const { pool } = require("../config/postgre");
+const { pool } = require("../../config/postgre");
 
-class WeatherDataRepository {
+class WeatherDataRepositoryPostgreSQL {
   /**
    * Get minute-by-minute averages of weather data within a time range
    * @param {Object} options - Query options
@@ -112,4 +112,4 @@ class WeatherDataRepository {
 
 }
 
-module.exports = new WeatherDataRepository();
+module.exports = new WeatherDataRepositoryPostgreSQL();

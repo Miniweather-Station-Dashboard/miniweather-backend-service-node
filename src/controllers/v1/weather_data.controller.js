@@ -1,6 +1,6 @@
-const weatherDataRepository = require("../../repositories/weather_data.repository");
+const weatherDataRepository = require("../../repositories/weather_data/weatherData.factory");
 const CustomError = require("../../helpers/customError");
-const collectionsRepository = require("../../repositories/collections/collections.postgre.repository");
+const collectionsRepository = require("../../repositories/collections/collections.factory");
 
 const getWeatherDataAverages = async (req) => {
   let {
@@ -37,6 +37,7 @@ const getWeatherDataAverages = async (req) => {
   }
 
   const fields = Object.keys(schemaFields);
+  console.log("Fields to query:", fields);  
 
   startTime = new Date(startTime);
   endTime = new Date(endTime);

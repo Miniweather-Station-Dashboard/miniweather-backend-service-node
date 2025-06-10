@@ -39,7 +39,7 @@ function publishMessage(topic, messageBuffer, project_id, token_id, collection_i
     const finalMessage = JSON.stringify(enrichedMessage);
 
     // Debug log — consider removing or throttling in production
-    console.log(`==> Publishing to ${topic}:`, finalMessage);
+    // console.log(`==> Publishing to ${topic}:`, finalMessage);
 
     mqttPublisher.publish(topic, finalMessage);
   } catch (err) {

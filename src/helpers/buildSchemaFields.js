@@ -10,7 +10,7 @@ export const buildSchemaFields = async (sensorTypeIds) => {
     indexed: false,
     required: false,
     auth_column: false,
-    internal_kind: "Real",
+    internal_kind: "boolean",
   };
 
   const schemaFields = {};

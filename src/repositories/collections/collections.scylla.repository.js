@@ -1,4 +1,4 @@
-const { client } = require("../../config/scylla"); 
+const { client } = require("../../config/scylla");
 const crypto = require("crypto");
 
 class CollectionsRepositoryScyllaDB {
@@ -11,7 +11,7 @@ class CollectionsRepositoryScyllaDB {
       id,
       projectId,
       name,
-      JSON.stringify(schemaFields), // Store schemaFields as JSON string
+      schemaFields,
     ];
     await client.execute(query, params, { prepare: true });
   }
@@ -33,9 +33,9 @@ class CollectionsRepositoryScyllaDB {
   }
 
   async removeByNameAndProjectId(name, projectId) {
-    // Scylla/Cassandra does not support DELETE with non-PK filter directly.
-    // You'll need a table with (project_id, name) as part of the primary key to do this efficiently.
-    throw new Error("removeByNameAndProjectId not supported without proper primary key");
+    throw new Error(
+      "removeByNameAndProjectId not supported without proper primary key"
+    );
   }
 
   generateId() {
@@ -68,8 +68,10 @@ class CollectionsRepositoryScyllaDB {
     const tokenId = process.env.HYPERBASE_TOKEN_ID;
     const projectId = process.env.HYPERBASE_PROJECT_ID;
 
-    if (!tokenId) throw new Error("SYSTEM_TOKEN_ID environment variable is not set");
-    if (!projectId) throw new Error("PROJECT_ID environment variable is not set");
+    if (!tokenId)
+      throw new Error("SYSTEM_TOKEN_ID environment variable is not set");
+    if (!projectId)
+      throw new Error("PROJECT_ID environment variable is not set");
 
     const ruleId = this.generateId();
 
@@ -94,13 +96,10 @@ class CollectionsRepositoryScyllaDB {
 
     if (result.rowLength === 0) return null;
 
-    const schemaFieldsStr = result.rows[0].schema_fields;
 
-    try {
-      return JSON.parse(schemaFieldsStr);
-    } catch {
-      throw new Error("Failed to parse schema_fields as JSON");
-    }
+    const schemaFields = result.rows[0].schema_fields;
+
+    return schemaFields;
   }
 }
 

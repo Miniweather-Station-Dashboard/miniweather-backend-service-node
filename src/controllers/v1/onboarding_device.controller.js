@@ -43,12 +43,13 @@ const createOnboardingDevice = async (req) => {
 
     const schemaFields = await buildSchemaFields(sensorTypeIds || []);
 
+
     await collectionsRepository.create(
       {
         id: device.id,
         name,
         projectId: process.env.HYPERBASE_PROJECT_ID,
-        schemaFields: JSON.stringify(schemaFields),
+        schemaFields, 
       },
       client
     );
@@ -56,7 +57,6 @@ const createOnboardingDevice = async (req) => {
     await collectionsRepository.createCollectionTable(device.id, schemaFields);
     await collectionsRepository.makeCollectionRules(device.id)
 
-    // Subscribe if device is active
     if (status === "active") {
       await subscribeToDevice(device.id);
     }

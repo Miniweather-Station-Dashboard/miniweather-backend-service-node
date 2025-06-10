@@ -77,11 +77,11 @@ mqttSubscriber.on("message", (topic, message) => {
   try {
     const collection_id = topic.split("/")[2];
     publishMessage(MQTT_HYPERBASE_TOPIC, message, project_id, token_id, collection_id);
-    console.log("MQTT message received:", topic, message.toString());
+    // console.log("MQTT message received:", topic, message.toString());
 
     if (global.io) {
       global.io.emit(topic, message.toString());
-      console.log("Emitted to socket.io:", topic, message.toString());
+      // console.log("Emitted to socket.io:", topic, message.toString());
     }
   } catch (err) {
     console.log("Error processing MQTT message:", err);
