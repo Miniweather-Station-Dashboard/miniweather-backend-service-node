@@ -45,7 +45,8 @@ class CollectionsRepositoryScyllaDB {
   async createCollectionTable(deviceId, schemaFields) {
     const tableName = `records_${deviceId.replace(/-/g, "")}`;
     const columns = [
-      `"${"_id"}" uuid PRIMARY KEY`,
+      `"${"_collection_id"}" uuid `,
+      `"${"_id"}" uuid `,
       `"${"_created_by"}" uuid`,
       `"${"_updated_at"}" timestamp`,
     ];
@@ -58,6 +59,7 @@ class CollectionsRepositoryScyllaDB {
     const query = `
       CREATE TABLE IF NOT EXISTS ${tableName} (
         ${columns.join(",\n")}
+        ,PRIMARY KEY (("_collection_id"), "_id")
       );
     `;
 

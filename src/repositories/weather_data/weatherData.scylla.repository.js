@@ -33,9 +33,9 @@ class WeatherDataRepositoryScyllaDB {
     // For simplicity, we'll fetch data and then manually group and average in memory.
     // This is NOT performant for large datasets.
     const query = `
-        SELECT _updated_at, ${fields.join(", ")}
+        SELECT "_updated_at", ${fields.join(", ")}
         FROM ${sanitizedTable}
-        WHERE _updated_at >= ? AND _updated_at <= ?
+        WHERE "_updated_at" >= ? AND "_updated_at" <= ?
         ALLOW FILTERING
     `;
     const params = [startTime, endTime];
