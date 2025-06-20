@@ -105,6 +105,11 @@ exports.validate = (method) => {
             }
             return true;
           }),
+
+        body("data_interval_seconds")
+          .optional()
+          .isInt({ min: 0 })
+          .withMessage("Data interval must be a positive integer")
       ];
     }
 

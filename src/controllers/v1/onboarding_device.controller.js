@@ -108,7 +108,7 @@ const getOnboardingDeviceById = async (req) => {
 
 const updateOnboardingDevice = async (req) => {
   const { id } = req.params;
-  const { name, location, status, sensorTypeIds } = req.body;
+  const { name, location, status, sensorTypeIds, data_interval_seconds } = req.body;
 
   const device = await onboardingDeviceRepository.findById(id);
   if (!device) {
@@ -122,6 +122,7 @@ const updateOnboardingDevice = async (req) => {
     name,
     location,
     status,
+    data_interval_seconds,
   });
 
   if (sensorTypeIds && Array.isArray(sensorTypeIds)) {

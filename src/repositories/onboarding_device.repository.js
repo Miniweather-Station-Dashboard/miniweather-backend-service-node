@@ -65,15 +65,15 @@ class OnboardingDeviceRepository {
   }
 
   // Update an existing onboarding device
-  async update(id, { name, location, status, sensorTypeIds }) {
+  async update(id, { name, location, status, sensorTypeIds, data_interval_seconds }) {
     const query = {
       text: `
         UPDATE onboarding_devices
-        SET name = COALESCE($1, name), location = COALESCE($2, location), status = COALESCE($3, status)
-        WHERE id = $4
-        RETURNING id, name, location, status
+        SET name = COALESCE($1, name), location = COALESCE($2, location), status = COALESCE($3, status), data_interval_seconds = COALESCE($4, data_interval_seconds)
+        WHERE id = $5
+        RETURNING id, name, location, status, data_interval_seconds
       `,
-      values: [name, location, status, id],
+      values: [name, location, status, data_interval_seconds, id],
     };
     const res = await pool.query(query);
     const updatedDevice = res.rows[0];
