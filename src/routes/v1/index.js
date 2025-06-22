@@ -7,6 +7,7 @@ const sensorTypesRoutes = require("./sensor_type.routes")
 const userRoutes = require("./user.routes");
 const errorRoutes = require("./error.routes");
 const warningRoutes = require("./warning.routes");
+const articleRoutes = require("./article.routes");
 
 router.use("/auth", authRoutes);
 router.use("/onboarding-device", onboardingDeviceRoutes);
@@ -15,5 +16,6 @@ router.use("/sensor-types", sensorTypesRoutes)
 router.use("/users", userRoutes);
 router.use("/errors", errorRoutes);
 router.use("/warnings", warningRoutes);
+router.use("/articles", articleRoutes);
 
 module.exports = router;
