@@ -85,7 +85,6 @@ const getAllArticles = async (req) => {
     const { records, total } = await articleRepository.findAllPaginated({
         page,
         limit,
-        is_published: is_published !== undefined ? is_published === 'true' : undefined,
         search
     });
     const articlesWithImageUrls = records.map(article => ({
