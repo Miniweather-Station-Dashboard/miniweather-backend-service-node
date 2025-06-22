@@ -81,7 +81,7 @@ const uploadImageToService = async ({ imageDataBuffer, originalFileName, mimeTyp
  * @returns {Promise<object>}
  */
 const getAllArticles = async (req) => {
-    const { page = 1, limit = 10, is_published, search } = req.query;
+    const { page = 1, limit = 10,  search } = req.query;
     const { records, total } = await articleRepository.findAllPaginated({
         page,
         limit,

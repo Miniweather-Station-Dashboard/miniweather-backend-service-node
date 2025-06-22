@@ -108,7 +108,7 @@ class ArticleRepository {
     const res = await pool.query(
       `INSERT INTO articles (title, content, header_image_id, author_id, is_published)
              VALUES ($1, $2, $3, $4, $5)
-             RETURNING id, title, content, header_image_id as "headerImageId", author_id as "authorId", is_published as "isPublished", created_at as "createdAt", updated_at as "updatedAt"`,
+             RETURNING id, title, content, header_image_id, author_id as "authorId", is_published as "isPublished", created_at as "createdAt", updated_at as "updatedAt"`,
       [title, content, header_image_id, author_id, is_published]
     );
     return res.rows[0];
@@ -134,7 +134,7 @@ class ArticleRepository {
                         is_published = COALESCE($5, is_published),
                         updated_at = NOW()
                 WHERE id = $1
-                RETURNING id, title, content, header_image_id as "headerImageId", author_id as "authorId", is_published as "isPublished", created_at as "createdAt", updated_at as "updatedAt"
+                RETURNING id, title, content, header_image_id, author_id as "authorId", is_published as "isPublished", created_at as "createdAt", updated_at as "updatedAt"
             `,
       values: [id, title, content, header_image_id, is_published],
     };

@@ -37,7 +37,6 @@ const getWeatherDataAverages = async (req) => {
   }
 
   const fields = Object.keys(schemaFields);
-  console.log("Fields to query:", fields);  
 
   startTime = new Date(startTime);
   endTime = new Date(endTime);

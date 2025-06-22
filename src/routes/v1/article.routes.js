@@ -63,6 +63,7 @@ router.put(
     "/:id",
     authenticate,
     roleMiddleware(["admin", "superAdmin"]),
+    uploadFileMiddleware.single('headerImageFile'),
     validate("updateArticle"),
     async (req, res) => {
         try {
