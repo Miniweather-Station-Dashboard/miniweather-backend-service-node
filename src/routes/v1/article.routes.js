@@ -11,7 +11,6 @@ const uploadFileMiddleware = require("../../middlewares/multer.middleware");
 
 router.get(
     "/",
-    authenticate,
     async (req, res) => {
         try {
             const result = await articleController.getAllArticles(req);
