@@ -33,12 +33,19 @@ app.use("/v1", v1Routes);
 const setupSwagger = require("./config/swagger.js");
 setupSwagger(app);
 
-pool.checkDatabaseConnection().then(() => {
-  const { mqttSubscriber } = require("./mqtt/subscriber.js");
+pool
+  .checkDatabaseConnection()
+  .then(() => pool.checkAndCreateTables())
+  .then(() => {
+    const { mqttSubscriber } = require("./mqtt/subscriber.js");
 
-  server.listen(HTTP_PORT, () => {
-    logger.info(`Server (HTTP + Socket.IO) running on port ${HTTP_PORT}`);
+    server.listen(HTTP_PORT, () => {
+      logger.info(`Server (HTTP + Socket.IO) running on port ${HTTP_PORT}`);
+    });
+  })
+  .catch((err) => {
+    logger.error("Failed to initialize database or start server:", err);
+    process.exit(1);
   });
-});
 
 module.exports = { app, pool };
