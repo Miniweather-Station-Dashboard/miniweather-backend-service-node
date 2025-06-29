@@ -72,6 +72,31 @@ router.post(
 
 /**
  * @swagger
+ * /v1/onboarding-device/admin:
+ *   get:
+ *     summary: Get all onboarding devices
+ *     tags: [OnboardingDevice]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of devices
+ */
+router.get("/admin", async (req, res) => {
+  try {
+    const result = await onboardingDeviceController.getAllOnboardingDevicesAdmin(
+      req
+    );
+    res
+      .status(200)
+      .json(successResponse({ message: "Devices retrieved", data: result }));
+  } catch (err) {
+    console.log(err);
+    await failedResponse({ res, req, errors: err });
+  }
+});
+/**
+ * @swagger
  * /v1/onboarding-device:
  *   get:
  *     summary: Get all onboarding devices
@@ -91,9 +116,11 @@ router.get("/", async (req, res) => {
       .status(200)
       .json(successResponse({ message: "Devices retrieved", data: result }));
   } catch (err) {
+    console.log(err);
     await failedResponse({ res, req, errors: err });
   }
 });
+
 
 /**
  * @swagger

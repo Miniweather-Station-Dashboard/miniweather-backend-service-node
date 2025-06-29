@@ -2,10 +2,32 @@ const {pool} = require("../config/postgre")
 
 class OnboardingDeviceRepository {
   
+  async findAllWithLimitAdmin(limit, offset) {
+    const query = {
+      text: `
+        SELECT * FROM onboarding_devices
+        ORDER BY created_at DESC
+        LIMIT $1 OFFSET $2
+      `,
+      values: [limit, offset],
+    };
+    const res = await pool.query(query);
+    return res.rows; 
+  }
+    async countAll() {
+    const query = {
+      text: `SELECT COUNT(*) FROM onboarding_devices`,
+    };
+    const res = await pool.query(query);
+   
+    return parseInt(res.rows[0].count, 10);
+  }
+
   async findAllWithLimit(limit, offset) {
     const query = {
       text: `
         SELECT * FROM onboarding_devices
+        WHERE status = 'active'
         ORDER BY created_at DESC
         LIMIT $1 OFFSET $2
       `,

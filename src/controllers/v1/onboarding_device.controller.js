@@ -90,6 +90,31 @@ const getAllOnboardingDevices = async (req) => {
   return { devices, totalCount };
 };
 
+const getAllOnboardingDevicesAdmin = async (req) => {
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const offset = parseInt(req.query.offset, 10) || 0;
+  
+  const [devices, totalCount] = await Promise.all([
+    onboardingDeviceRepository.findAllWithLimitAdmin(limit, offset),
+    onboardingDeviceRepository.countAll(),
+  ]);
+
+  for (const device of devices) {
+    const sensors = await deviceSensorRepository.findByDeviceId(device.id);
+    device.sensors = [];
+
+    for (const sensor of sensors) {
+      const sensorType = await sensorTypeRepository.findById(
+        sensor.sensorTypeId
+      );
+      device.sensors.push({ ...sensor, sensorType });
+    }
+  }
+
+
+  return { devices, totalCount };
+};
+
 const getOnboardingDeviceById = async (req) => {
   const { id } = req.params;
   const device = await onboardingDeviceRepository.findById(id);
@@ -109,6 +134,7 @@ const getOnboardingDeviceById = async (req) => {
 const updateOnboardingDevice = async (req) => {
   const { id } = req.params;
   const { name, location, status, sensorTypeIds, data_interval_seconds } = req.body;
+  console.log('Updating device:', id, name, location, status, sensorTypeIds, data_interval_seconds);
 
   const device = await onboardingDeviceRepository.findById(id);
   if (!device) {
@@ -176,4 +202,5 @@ module.exports = {
   getOnboardingDeviceById,
   updateOnboardingDevice,
   deleteOnboardingDevice,
+  getAllOnboardingDevicesAdmin,
 };
