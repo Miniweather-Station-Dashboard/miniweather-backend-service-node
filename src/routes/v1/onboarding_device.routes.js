@@ -6,6 +6,7 @@ const { validationResult } = require("express-validator");
 const { successResponse, failedResponse } = require("../../helpers/response");
 const CustomError = require("../../helpers/customError");
 const authenticate = require("../../middlewares/auth.middleware");
+const roleMiddleware = require("../../middlewares/role.middleware");
 
 /**
  * @swagger
@@ -82,7 +83,10 @@ router.post(
  *       200:
  *         description: List of devices
  */
-router.get("/admin", async (req, res) => {
+router.get("/admin",
+  authenticate,
+  roleMiddleware(["admin", "superAdmin"]),
+  async (req, res) => {
   try {
     const result = await onboardingDeviceController.getAllOnboardingDevicesAdmin(
       req
