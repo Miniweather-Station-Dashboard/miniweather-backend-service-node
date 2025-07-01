@@ -9,6 +9,22 @@ const roleMiddleware = require("../../middlewares/role.middleware");
 const { validationResult } = require("express-validator");
 const uploadFileMiddleware = require("../../middlewares/multer.middleware");
 
+
+router.get(
+    "/admin",
+    authenticate,
+    roleMiddleware(["admin", "superAdmin"]),
+    async (req, res) => {
+        try {
+            const result = await articleController.getAllArticlesForAdmin(req);
+            res.status(200).json(successResponse({ message: "Articles retrieved", data: result }));
+        } catch (err) {
+            console.error("Error fetching articles:", err);
+            await failedResponse({ res, req, errors: err });
+        }
+    }
+);
+
 router.get(
     "/",
     async (req, res) => {
@@ -25,6 +41,7 @@ router.get(
 router.get(
     "/:id",
     authenticate,
+    roleMiddleware(["admin", "superAdmin"]),
     validate("getArticleById"),
     async (req, res) => {
         try {
@@ -42,7 +59,7 @@ router.get(
 router.post(
     "/",
     authenticate,
-    roleMiddleware(["admin", "superAdmin","user"]),
+    roleMiddleware(["admin", "superAdmin"]),
     uploadFileMiddleware.single("headerImage"),
     validate("createArticle"),
 
@@ -62,7 +79,7 @@ router.post(
 router.put(
     "/:id",
     authenticate,
-    roleMiddleware(["admin", "superAdmin"]),
+    roleMiddleware(["superAdmin"]),
     uploadFileMiddleware.single('headerImageFile'),
     validate("updateArticle"),
     async (req, res) => {

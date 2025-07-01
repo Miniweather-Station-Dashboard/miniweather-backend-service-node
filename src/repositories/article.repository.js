@@ -70,6 +70,68 @@ class ArticleRepository {
     };
   }
 
+  async findAllPaginatedForAdmin({ page = 1, limit = 10, search }) {
+    const parsedPage = parseInt(page, 10);
+    const parsedLimit = parseInt(limit, 10);
+    const offset = (parsedPage - 1) * parsedLimit;
+
+    let whereClauses = [];
+    let queryParams = [parsedLimit, offset];
+    let paramIndex = 3;
+
+    let countQueryParams = [];
+
+    if (search) {
+      whereClauses.push(
+        `(title ILIKE $${paramIndex} OR content ILIKE $${paramIndex})`
+      );
+      queryParams.push(`%${search}%`);
+
+      countQueryParams.push(`%${search}%`);
+    }
+
+    const whereString =
+      whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+    const articlesQuery = {
+      text: `
+            SELECT
+                    id,
+                    title,
+                    content,
+                    header_image_id,
+                    author_id as "authorId",
+                    is_published as "isPublished",
+                    created_at as "createdAt",
+                    updated_at as "updatedAt"
+            FROM articles
+            ${whereString}
+            ORDER BY created_at DESC
+            LIMIT $1 OFFSET $2
+        `,
+      values: queryParams,
+    };
+
+    const countQuery = {
+      text: `
+            SELECT COUNT(*) FROM articles
+            WHERE is_published = true
+            ${search ? "AND (title ILIKE $1 OR content ILIKE $1)" : ""}
+        `,
+      values: search ? countQueryParams : [],
+    };
+
+    const [articlesResult, countResult] = await Promise.all([
+      pool.query(articlesQuery),
+      pool.query(countQuery),
+    ]);
+
+    return {
+      records: articlesResult.rows,
+      total: parseInt(countResult.rows[0].count, 10),
+    };
+  }
+
   /**
    * @param {string} id - The UUID of the article.
    * @returns {Promise<object|null>}

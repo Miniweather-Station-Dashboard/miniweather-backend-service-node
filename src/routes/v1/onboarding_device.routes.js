@@ -47,6 +47,7 @@ const roleMiddleware = require("../../middlewares/role.middleware");
 router.post(
   "/",
   authenticate,
+  roleMiddleware(["superAdmin"]),
   validate("createOnboardingDevice"),
   async (req, res) => {
     try {
@@ -88,7 +89,7 @@ router.get("/admin",
   roleMiddleware(["admin", "superAdmin"]),
   async (req, res) => {
   try {
-    const result = await onboardingDeviceController.getAllOnboardingDevicesAdmin(
+    const result = await onboardingDeviceController.getAllOnboardingDevicesForAdmin(
       req
     );
     res
@@ -203,6 +204,7 @@ router.get(
 router.put(
   "/:id",
   authenticate,
+  roleMiddleware(["superAdmin"]),
   validate("updateOnboardingDevice"),
   async (req, res) => {
     try {
@@ -247,6 +249,7 @@ router.put(
 router.delete(
   "/:id",
   authenticate,
+  roleMiddleware(["superAdmin"]),
   validate("deleteOnboardingDevice"),
   async (req, res) => {
     try {

@@ -90,7 +90,7 @@ const { validationResult } = require("express-validator");
 router.get(
     "/",
     authenticate,
-    roleMiddleware(["admin", "superAdmin", "user"]),
+    roleMiddleware(["admin", "superAdmin"]),
     async (req, res) => {
         try {
             const result = await errorController.getAllErrors(req);

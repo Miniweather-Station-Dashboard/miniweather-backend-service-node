@@ -6,6 +6,7 @@ const { validationResult } = require("express-validator");
 const { successResponse, failedResponse } = require("../../helpers/response");
 const CustomError = require("../../helpers/customError");
 const authenticate = require("../../middlewares/auth.middleware");
+const roleMiddleware = require("../../middlewares/role.middleware.js");
 
 /**
  * @swagger
@@ -172,6 +173,7 @@ router.get(
 router.post(
   "/",
   authenticate,
+  roleMiddleware(["admin", "superAdmin"]),
   validate("createWeatherData"),
   async (req, res) => {
     try {

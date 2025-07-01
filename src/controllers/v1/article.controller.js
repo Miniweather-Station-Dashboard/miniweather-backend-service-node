@@ -97,6 +97,24 @@ const getAllArticles = async (req) => {
 /**
  * @param {object} req
  * @returns {Promise<object>}
+ */
+const getAllArticlesForAdmin = async (req) => {
+    const { page = 1, limit = 10,  search } = req.query;
+    const { records, total } = await articleRepository.findAllPaginatedForAdmin({
+        page,
+        limit,
+        search
+    });
+    const articlesWithImageUrls = records.map(article => ({
+        ...article,
+        headerImageUrl: getImageUrl(article.header_image_id),
+    }));
+    return { articles: articlesWithImageUrls, total };
+};
+
+/**
+ * @param {object} req
+ * @returns {Promise<object>}
  * @throws {CustomError}
  */
 const getArticleById = async (req) => {
