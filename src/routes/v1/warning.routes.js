@@ -8,6 +8,18 @@ const authenticate = require("../../middlewares/auth.middleware");
 const roleMiddleware = require("../../middlewares/role.middleware");
 const { validationResult } = require("express-validator");
 
+router.get("/admin", async (req, res) => {
+  try {
+    const result = await warningController.getAllWarningsForAdmin(req);
+    res
+      .status(200)
+      .json(successResponse({ message: "Warnings retrieved", data: result }));
+  } catch (err) {
+    console.error("Error fetching warnings:", err);
+    await failedResponse({ res, req, errors: err });
+  }
+});
+
 router.get("/", async (req, res) => {
   try {
     const result = await warningController.getAllWarnings(req);

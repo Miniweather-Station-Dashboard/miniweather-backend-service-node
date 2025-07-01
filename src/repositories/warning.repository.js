@@ -13,6 +13,37 @@ class WarningRepository {
                         created_at as "createdAt",
                         updated_at as "updatedAt"
                 FROM warnings
+                WHERE is_active = true
+                ORDER BY created_at DESC
+                LIMIT $1 OFFSET $2
+            `,
+            values: [limit, offset],
+        };
+        const countQuery = {
+            text: 'SELECT COUNT(*) FROM warnings',
+        };
+        const [warningsResult, countResult] = await Promise.all([
+            pool.query(warningsQuery),
+            pool.query(countQuery)
+        ]);
+        return {
+            records: warningsResult.rows,
+            total: parseInt(countResult.rows[0].count, 10)
+        };
+    }
+
+    async findAllPaginatedForAdmin({ page = 1, limit = 10 }) {
+        const offset = (page - 1) * limit;
+        const warningsQuery = {
+            text: `
+                SELECT
+                        id,
+                        message,
+                        type,
+                        is_active as "isActive",
+                        created_at as "createdAt",
+                        updated_at as "updatedAt"
+                FROM warnings
                 ORDER BY created_at DESC
                 LIMIT $1 OFFSET $2
             `,

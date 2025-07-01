@@ -16,6 +16,19 @@ const getAllWarnings = async (req) => {
 
 /**
  * @param {object} req - Express request object.
+ * @returns {Promise<object>} - Object containing paginated warnings and total count.
+ */
+const getAllWarningsForAdmin = async (req) => {
+    const { page = 1, limit = 10 } = req.query;
+    const { records, total } = await warningRepository.findAllPaginatedForAdmin({
+        page,
+        limit,
+    });
+    return { warnings: records, total };
+};
+
+/**
+ * @param {object} req - Express request object.
  * @returns {Promise<object>} - Object containing the warning data.
  * @throws {CustomError} - If the warning is not found.
  */
@@ -69,6 +82,7 @@ const createWarning = async (req) => {
 const updateWarning = async (req) => {
     const { id } = req.params;
     const { message, type, is_active } = req.body;
+    console.log('Updating warning:', id, message, type, is_active);
 
     const existingWarning = await warningRepository.findById(id);
     if (!existingWarning) {
@@ -116,4 +130,5 @@ module.exports = {
     createWarning,
     updateWarning,
     deleteWarning,
+    getAllWarningsForAdmin,
 };
