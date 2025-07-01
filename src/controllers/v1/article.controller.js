@@ -278,5 +278,6 @@ module.exports = {
     createArticle,
     updateArticle,
     deleteArticle,
-    getCarouselArticles, // Export the new function
+    getCarouselArticles,
+    getAllArticlesForAdmin,
 };
