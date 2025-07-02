@@ -37,7 +37,7 @@ const register = async (req, res) => {
     to: normalizedEmail,
     name,
     email: normalizedEmail,
-    password: generatedPassword, 
+    password: generatedPassword,
   });
 
   return {
@@ -83,7 +83,10 @@ const login = async (req, res) => {
     expiresIn: process.env.JWT_REFRESH_EXPIRATION,
   });
 
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const expiresInMs =
+    parseInt(process.env.JWT_REFRESH_EXPIRATION_MS, 10) ||
+    7 * 24 * 60 * 60 * 1000; // fallback to 7 days
+  const expiresAt = new Date(Date.now() + expiresInMs);
 
   await userRepository.saveRefreshToken({
     userId: user.id,
@@ -99,7 +102,15 @@ const login = async (req, res) => {
 
 const refreshToken = async (req, res) => {
   const { refreshToken } = req.body;
-  const payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+  let payload;
+  try {
+    payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+  } catch {
+    throw new CustomError({
+      message: "Invalid or expired refresh token",
+      statusCode: 403,
+    });
+  }
   const userId = payload.id;
 
   const storedToken = await userRepository.findByRefreshToken(refreshToken);
@@ -115,17 +126,34 @@ const refreshToken = async (req, res) => {
   }
 
   await userRepository.revokeRefreshToken(storedToken.id);
+  const user = await userRepository.findById(userId);
 
-  const newAccessToken = jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+  if (!user) {
+    throw new CustomError({ message: "User not found", statusCode: 404 });
+  }
+
+  if (!user.is_active) {
+    throw new CustomError({ message: "Email not verified", statusCode: 403 });
+  }
+
+  payload = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role || "user",
+  };
+  const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRATION,
   });
-  const newRefreshToken = jwt.sign(
-    { id: userId },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRATION }
-  );
 
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const newRefreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRATION,
+  });
+
+  const expiresInMs =
+    parseInt(process.env.JWT_REFRESH_EXPIRATION_MS, 10) ||
+    7 * 24 * 60 * 60 * 1000; // fallback to 7 days
+  const expiresAt = new Date(Date.now() + expiresInMs);
   await userRepository.saveRefreshToken({
     userId,
     refreshToken: newRefreshToken,
