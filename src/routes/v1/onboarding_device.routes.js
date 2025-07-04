@@ -96,7 +96,6 @@ router.get("/admin",
       .status(200)
       .json(successResponse({ message: "Devices retrieved", data: result }));
   } catch (err) {
-    console.log(err);
     await failedResponse({ res, req, errors: err });
   }
 });
@@ -121,7 +120,6 @@ router.get("/", async (req, res) => {
       .status(200)
       .json(successResponse({ message: "Devices retrieved", data: result }));
   } catch (err) {
-    console.log(err);
     await failedResponse({ res, req, errors: err });
   }
 });

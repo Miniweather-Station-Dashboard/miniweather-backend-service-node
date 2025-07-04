@@ -82,7 +82,6 @@ const createWarning = async (req) => {
 const updateWarning = async (req) => {
     const { id } = req.params;
     const { message, type, is_active } = req.body;
-    console.log('Updating warning:', id, message, type, is_active);
 
     const existingWarning = await warningRepository.findById(id);
     if (!existingWarning) {
