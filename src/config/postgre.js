@@ -1,5 +1,6 @@
 const { Pool } = require("pg");
 const dotenv = require("dotenv");
+const bcrypt = require("bcrypt");
 
 dotenv.config();
 
@@ -8,7 +9,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME
+  database: process.env.DB_NAME,
 });
 
 const checkDatabaseConnection = async () => {
@@ -21,15 +22,21 @@ const checkDatabaseConnection = async () => {
   }
 };
 
+const DEFAULT_SUPERADMIN_EMAIL = "admin@example.com";
+const DEFAULT_SUPERADMIN_PASSWORD = "ChangeMe123!";
+const DEFAULT_SUPERADMIN_NAME = "Super Admin";
+
 async function checkAndCreateTables() {
   const client = await pool.connect();
   try {
+    await client.query("BEGIN");
+
     const tableDDLs = {
       articles: `
-        CREATE TABLE public.articles (
+        CREATE TABLE IF NOT EXISTS public.articles (
             id uuid DEFAULT gen_random_uuid() NOT NULL,
             title varchar(255) NOT NULL,
-            "content" text NOT NULL,
+            content text NOT NULL,
             header_image_id uuid NULL,
             author_id uuid NULL,
             is_published bool DEFAULT false NULL,
@@ -39,10 +46,10 @@ async function checkAndCreateTables() {
         );
       `,
       onboarding_devices: `
-        CREATE TABLE public.onboarding_devices (
+        CREATE TABLE IF NOT EXISTS public.onboarding_devices (
             id uuid DEFAULT gen_random_uuid() NOT NULL,
-            "name" text NOT NULL,
-            "location" text NOT NULL,
+            name text NOT NULL,
+            location text NOT NULL,
             user_id uuid NOT NULL,
             status text NOT NULL,
             created_at timestamptz DEFAULT now() NULL,
@@ -53,24 +60,24 @@ async function checkAndCreateTables() {
         );
       `,
       users: `
-        CREATE TABLE public.users (
+        CREATE TABLE IF NOT EXISTS public.users (
             id uuid DEFAULT gen_random_uuid() NOT NULL,
-            "name" varchar(255) NOT NULL,
-            email varchar(255) NOT NULL,
+            name varchar(255) NOT NULL,
+            email varchar(255) NOT NULL UNIQUE,
             password_hash varchar(255) NOT NULL,
-            "role" varchar(50) DEFAULT 'user'::character varying NULL,
-            is_active bool DEFAULT false NOT NULL,
-            created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
-            updated_at timestamp DEFAULT CURRENT_TIMESTAMP NULL,
+            role varchar(50) NOT NULL DEFAULT 'user',
+            is_active bool NOT NULL DEFAULT false,
+            created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
             verification_code varchar NULL,
             CONSTRAINT users_email_key UNIQUE (email),
             CONSTRAINT users_pkey PRIMARY KEY (id)
         );
       `,
-            sensor_types: `
-        CREATE TABLE public.sensor_types (
+      sensor_types: `
+        CREATE TABLE IF NOT EXISTS public.sensor_types (
             id uuid DEFAULT gen_random_uuid() NOT NULL,
-            "name" text NOT NULL,
+            name text NOT NULL UNIQUE,
             unit text NULL,
             description text NULL,
             CONSTRAINT sensor_types_name_key UNIQUE (name),
@@ -78,7 +85,7 @@ async function checkAndCreateTables() {
         );
       `,
       device_sensors: `
-        CREATE TABLE public.device_sensors (
+        CREATE TABLE IF NOT EXISTS public.device_sensors (
             id uuid DEFAULT gen_random_uuid() NOT NULL,
             device_id uuid NOT NULL,
             sensor_type_id uuid NOT NULL,
@@ -90,7 +97,7 @@ async function checkAndCreateTables() {
         );
       `,
       refresh_tokens: `
-        CREATE TABLE public.refresh_tokens (
+        CREATE TABLE IF NOT EXISTS public.refresh_tokens (
             id uuid DEFAULT gen_random_uuid() NOT NULL,
             user_id uuid NULL,
             refresh_token text NOT NULL,
@@ -102,7 +109,7 @@ async function checkAndCreateTables() {
         );
       `,
       server_errors: `
-        CREATE TABLE public.server_errors (
+        CREATE TABLE IF NOT EXISTS public.server_errors (
             id serial4 NOT NULL,
             message text NOT NULL,
             stack text NULL,
@@ -114,10 +121,10 @@ async function checkAndCreateTables() {
         );
       `,
       warnings: `
-        CREATE TABLE public.warnings (
+        CREATE TABLE IF NOT EXISTS public.warnings (
             id uuid DEFAULT gen_random_uuid() NOT NULL,
             message varchar(500) NOT NULL,
-            "type" varchar(50) DEFAULT 'general'::character varying NULL,
+            type varchar(50) DEFAULT 'general' NULL,
             is_active bool DEFAULT true NULL,
             created_at timestamptz DEFAULT now() NULL,
             updated_at timestamptz DEFAULT now() NULL,
@@ -126,27 +133,38 @@ async function checkAndCreateTables() {
       `,
     };
 
-    for (const tableName in tableDDLs) {
-      const checkTableQuery = `SELECT EXISTS (
-          SELECT 1
-          FROM information_schema.tables
-          WHERE table_schema = 'public'
-          AND table_name = '${tableName}'
-      );`;
-
-      const res = await client.query(checkTableQuery);
-      const tableExists = res.rows[0].exists;
-
-      if (!tableExists) {
-        console.log(`Table '${tableName}' does not exist. Creating it...`);
-        await client.query(tableDDLs[tableName]);
-        console.log(`Table '${tableName}' created successfully.`);
-      } else {
-        console.log(`Table '${tableName}' already exists. Skipping creation.`);
-      }
+    for (const ddl of Object.values(tableDDLs)) {
+      await client.query(ddl);
     }
+
+    const email = process.env.SUPERADMIN_EMAIL || DEFAULT_SUPERADMIN_EMAIL;
+    const rawPassword =
+      process.env.SUPERADMIN_PASSWORD || DEFAULT_SUPERADMIN_PASSWORD;
+    const name = process.env.SUPERADMIN_NAME || DEFAULT_SUPERADMIN_NAME;
+
+    const countRes = await client.query(
+      `SELECT COUNT(*) FROM public.users WHERE role = 'superAdmin';`
+    );
+    const exists = parseInt(countRes.rows[0].count, 10) > 0;
+
+    if (!exists) {
+      const passwordHash = await bcrypt.hash(rawPassword, 10);
+
+      await client.query(
+        `INSERT INTO public.users (name, email, password_hash, role, is_active)
+         VALUES ($1, $2, $3, 'superAdmin', true);`,
+        [name, email, passwordHash]
+      );
+      console.log(`✅ Superadmin created: ${email}`);
+    } else {
+      console.log("🔐 Superadmin already exists. Skipping creation.");
+    }
+
+    await client.query("COMMIT");
+    console.log("✅ Migration and superAdmin seed completed successfully");
   } catch (error) {
-    console.error("Error checking or creating tables:", error);
+    await client.query("ROLLBACK");
+    console.error("❌ Migration failed, rolled back:", error);
     process.exit(1);
   } finally {
     client.release();
