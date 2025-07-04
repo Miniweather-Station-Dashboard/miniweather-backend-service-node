@@ -10,12 +10,12 @@ class UserRepository {
     return res.rows[0];
   }
 
-  async create({ name, email, passwordHash, is_active }) {
+  async create({ name, email, passwordHash, role, is_active }) {
     const res = await pool.query(
-      `INSERT INTO users (name, email, password_hash,is_active)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO users (name, email, password_hash, role, is_active)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id, name, email, role, is_active`,
-      [name, email, passwordHash, is_active]
+      [name, email, passwordHash, role, is_active]
     );
     return res.rows[0];
   }

@@ -45,11 +45,27 @@ const updateUser = async (req) => {
     });
   }
 
-  // Users can only update their own profile unless they're admin+
-  if (req.user.id !== id && !["admin", "superAdmin"].includes(req.user.role)) {
+  const isSelf = req.user.id === id;
+  const isSuperAdmin = req.user.role === "superAdmin";
+
+  if (!isSelf && !isSuperAdmin) {
     throw new CustomError({
       message: "Forbidden: You can only update your own profile",
-      statusCode: 403,
+      statusCode: 400,
+    });
+  }
+
+  if (role && !isSuperAdmin) {
+    throw new CustomError({
+      message: "Forbidden: Only superAdmin can update user roles",
+      statusCode: 400,
+    });
+  }
+
+  if (name && !isSelf && !isSuperAdmin) {
+    throw new CustomError({
+      message: "Forbidden: You can only update your own name",
+      statusCode: 400,
     });
   }
 
@@ -63,6 +79,7 @@ const updateUser = async (req) => {
     user: updated,
   };
 };
+
 
 // Only superadmin can delete users
 const deleteUser = async (req) => {

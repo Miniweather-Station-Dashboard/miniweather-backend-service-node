@@ -113,7 +113,7 @@ router.get(
 router.put(
   "/:id",
   authenticate,
-  roleMiddleware(["superAdmin"]),
+  roleMiddleware(["admin","superAdmin"]),
   validate("updateUser"),
   async (req, res) => {
     try {

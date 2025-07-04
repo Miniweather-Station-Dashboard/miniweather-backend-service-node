@@ -29,8 +29,8 @@ const register = async (req, res) => {
     name,
     email: normalizedEmail,
     passwordHash,
-    is_active,
     role,
+    is_active,
   });
 
   await emailService.sendRegisterMail({
@@ -42,7 +42,7 @@ const register = async (req, res) => {
 
   return {
     message: "User created. Credentials sent via email.",
-    user: { id: user.id, email: user.email }, // Don't return password in response
+    user: { id: user.id, email: user.email, name: user.name, role: user.role },
   };
 };
 
