@@ -2,6 +2,8 @@ const socketIo = require("socket.io");
 const logger = require("../utils/logger");
 const { checkHyperbaseStatus } = require("../config/hyperbaseStatus");
 
+let isHyperbaseOnline = false;
+
 function initializeSocket(server) {
   const io = socketIo(server, {
     cors: {
@@ -20,11 +22,11 @@ function initializeSocket(server) {
     });
   });
 
- setInterval(async () => {
-    const isOnline = await checkHyperbaseStatus();
-
+  setInterval(async () => {
+    const status = await checkHyperbaseStatus();
+    isHyperbaseOnline = status;
     io.emit("hyperbase_status", {
-      status: isOnline ? "online" : "offline",
+      status: isHyperbaseOnline ? "online" : "offline",
       timestamp: new Date().toISOString(),
     });
   }, 3000);
@@ -32,4 +34,7 @@ function initializeSocket(server) {
   return io;
 }
 
-module.exports = initializeSocket;
+module.exports = {
+  initializeSocket,
+  getHyperbaseStatus: () => isHyperbaseOnline, 
+};

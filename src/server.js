@@ -9,7 +9,7 @@ const http = require("http");
 const logger = require("./config/logger.js");
 const pool = require("./config/postgre.js");
 const { HTTP_PORT } = require("./config/socketConfig"); // Use same port or .env
-const initializeSocket = require("./socket");
+const {initializeSocket} = require("./socket");
 
 const app = express();
 const server = http.createServer(app); // 👈 Create server from Express app
@@ -37,6 +37,7 @@ pool
   .checkDatabaseConnection()
   .then(() => pool.checkAndCreateTables())
   .then(() => {
+    require("./worker/hyperbaseFlushWorker.js");
     const { mqttSubscriber } = require("./mqtt/subscriber.js");
 
     server.listen(HTTP_PORT, () => {

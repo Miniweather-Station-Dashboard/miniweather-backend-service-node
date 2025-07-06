@@ -6,6 +6,8 @@ const {
 const logger = require("../utils/logger");
 const { pool } = require("../config/postgre");
 const { publishMessage } = require("./publisher");
+const { getHyperbaseStatus } = require("../socket/index");
+const redisClient = require("../config/redis"); 
 
 // Track active subscriptions
 const activeSubscriptions = new Set();
@@ -26,12 +28,16 @@ const initializeSubscriptions = async () => {
     );
 
     deviceConfigurations.clear();
-    activeSubscriptions.clear(); 
+    activeSubscriptions.clear();
     lastProcessedMessageTime.clear();
 
     for (const { id, data_interval_seconds } of result.rows) {
       deviceConfigurations.set(id, { data_interval_seconds });
-      logger.info(`Device ${id} configured with data_interval_seconds: ${data_interval_seconds || 'not set'}`);
+      logger.info(
+        `Device ${id} configured with data_interval_seconds: ${
+          data_interval_seconds || "not set"
+        }`
+      );
       await subscribeToDevice(id);
     }
   } catch (err) {
@@ -89,39 +95,56 @@ const unsubscribeFromDevice = async (deviceId) => {
 
 const updateDeviceDataInterval = async (deviceId, newDataIntervalSeconds) => {
   try {
-    deviceConfigurations.set(deviceId, { data_interval_seconds: newDataIntervalSeconds });
-    logger.info(`Successfully updated data interval for device ${deviceId} to ${newDataIntervalSeconds || 'null'} seconds in in-memory cache.`);
+    deviceConfigurations.set(deviceId, {
+      data_interval_seconds: newDataIntervalSeconds,
+    });
+    logger.info(
+      `Successfully updated data interval for device ${deviceId} to ${
+        newDataIntervalSeconds || "null"
+      } seconds in in-memory cache.`
+    );
     return true;
   } catch (err) {
-    logger.error(`Error updating data interval in cache for device ${deviceId}:`, err);
-    return false; 
+    logger.error(
+      `Error updating data interval in cache for device ${deviceId}:`,
+      err
+    );
+    return false;
   }
 };
 
-
-mqttSubscriber.on("message", (topic, message) => {
+mqttSubscriber.on("message", async (topic, message) => {
   try {
     const topicParts = topic.split("/");
-    const deviceId = topicParts[2]; 
+    const deviceId = topicParts[2];
 
     const deviceConfig = deviceConfigurations.get(deviceId);
-    const dataIntervalSeconds = deviceConfig ? deviceConfig.data_interval_seconds : null;
+    const dataIntervalSeconds = deviceConfig
+      ? deviceConfig.data_interval_seconds
+      : null;
     const lastProcessedTime = lastProcessedMessageTime.get(deviceId) || 0; // Default to 0 if never processed
     const currentTime = Date.now(); // Current time in milliseconds
 
     // Check if the message should be throttled based on data_interval_seconds
     // If data_interval_seconds is null, undefined, or 0, always process the message.
     // Otherwise, process only if enough time has passed since the last processed message.
-    if (dataIntervalSeconds === null || dataIntervalSeconds === undefined || dataIntervalSeconds <= 0 ||
-        (currentTime - lastProcessedTime) >= (dataIntervalSeconds * 1000)) {
-
+    if (
+      dataIntervalSeconds === null ||
+      dataIntervalSeconds === undefined ||
+      dataIntervalSeconds <= 0 ||
+      currentTime - lastProcessedTime >= dataIntervalSeconds * 1000
+    ) {
       // Update the last processed time for this device
       lastProcessedMessageTime.set(deviceId, currentTime);
 
       if (dataIntervalSeconds !== null && dataIntervalSeconds !== undefined) {
-        logger.info(`Device ${deviceId} processing message. Configured interval: ${dataIntervalSeconds} seconds.`);
+        logger.info(
+          `Device ${deviceId} processing message. Configured interval: ${dataIntervalSeconds} seconds.`
+        );
       } else {
-        logger.info(`Device ${deviceId} processing message. No data interval configured.`);
+        logger.info(
+          `Device ${deviceId} processing message. No data interval configured.`
+        );
       }
 
       let parsedMessage;
@@ -129,25 +152,58 @@ mqttSubscriber.on("message", (topic, message) => {
         parsedMessage = JSON.parse(message.toString());
         // logger.debug("Parsed MQTT message:", parsedMessage);
       } catch (parseErr) {
-        logger.warn(`Could not parse MQTT message from ${topic} as JSON. Content: ${message.toString()}`);
+        logger.warn(
+          `Could not parse MQTT message from ${topic} as JSON. Content: ${message.toString()}`
+        );
         // If it's not JSON, we'll just proceed with the raw message for Hyperbase/Socket.io
         parsedMessage = message.toString();
       }
 
       const collection_id = topic.split("/")[2]; // Assuming deviceId is used as collection_id
-      publishMessage(MQTT_HYPERBASE_TOPIC, message, project_id, token_id, collection_id);
-      // console.log("MQTT message received:", topic, message.toString());
+      if (getHyperbaseStatus()) {
+        // Hyperbase is online
+        publishMessage(
+          MQTT_HYPERBASE_TOPIC,
+          message,
+          project_id,
+          token_id,
+          collection_id
+        );
+      } else {
+        // Hyperbase is offline → save to Redis
+        const cacheKey = `buffer:${deviceId}:${Date.now()}`;
+        await redisClient.set(
+          cacheKey,
+          JSON.stringify({
+            topic,
+            deviceId,
+            message: message.toString(),
+            timestamp: new Date().toISOString(),
+          })
+        );
+        logger.info(
+          `Hyperbase offline — message buffered to Redis key ${cacheKey}`
+        );
+      }
+
 
       if (global.io) {
         // Emit the original message (or parsed, if you prefer)
         global.io.emit(topic, message.toString());
         // console.log("Emitted to socket.io:", topic, message.toString());
       }
-    } 
-    else {
-      logger.info(`Throttling message for device ${deviceId}. Last processed at ${new Date(lastProcessedTime).toISOString()}.`);
+    } else {
+      logger.info(
+        `Throttling message for device ${deviceId}. Last processed at ${new Date(
+          lastProcessedTime
+        ).toISOString()}.`
+      );
     }
   } catch (err) {
+    console.error(
+      `Error processing MQTT message for topic ${topic}:`,
+      err
+    );
     logger.error("Error processing MQTT message:", err);
   }
 });
