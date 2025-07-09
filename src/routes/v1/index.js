@@ -8,6 +8,7 @@ const userRoutes = require("./user.routes");
 const errorRoutes = require("./error.routes");
 const warningRoutes = require("./warning.routes");
 const articleRoutes = require("./article.routes");
+const recentActivityRoutes = require("./recent_activity.routes");
 
 router.use("/auth", authRoutes);
 router.use("/onboarding-device", onboardingDeviceRoutes);
@@ -17,5 +18,6 @@ router.use("/users", userRoutes);
 router.use("/errors", errorRoutes);
 router.use("/warnings", warningRoutes);
 router.use("/articles", articleRoutes);
+router.use("/recent-activity", recentActivityRoutes);
 
 module.exports = router;

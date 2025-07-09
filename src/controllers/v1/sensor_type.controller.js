@@ -1,4 +1,6 @@
 const sensorTypeRepository = require("../../repositories/sensor_type.repository");
+const recentActivityRepository = require("../../repositories/recent_activity.repository"); 
+
 const CustomError = require("../../helpers/customError");
 
 const createSensorType = async (req) => {
@@ -13,6 +15,8 @@ const createSensorType = async (req) => {
   }
 
   const record = await sensorTypeRepository.create({ name, unit, description });
+  await recentActivityRepository.create(`Sensor type created: ${name}`);
+
   return { message: "Sensor type created successfully", record };
 };
 
@@ -51,6 +55,8 @@ const updateSensorType = async (req) => {
     description: description || existing.description,
   });
 
+  await recentActivityRepository.create(`Sensor type updated: ${updated.name}`);
+
   return { message: "Sensor type updated successfully", record: updated };
 };
 
@@ -64,6 +70,8 @@ const deleteSensorType = async (req) => {
     });
   }
   await sensorTypeRepository.delete(id);
+  await recentActivityRepository.create(`Sensor type deleted: ${existing.name}`);
+
   return { message: "Sensor type deleted successfully" };
 };
 

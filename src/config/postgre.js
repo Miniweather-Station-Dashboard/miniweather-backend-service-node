@@ -131,6 +131,14 @@ async function checkAndCreateTables() {
             CONSTRAINT warnings_pkey PRIMARY KEY (id)
         );
       `,
+      recent_activities: `
+        CREATE TABLE IF NOT EXISTS public.recent_activities (
+            id uuid DEFAULT gen_random_uuid() NOT NULL,
+            message text NOT NULL,
+            created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT recent_activities_pkey PRIMARY KEY (id)
+        );
+      `,
     };
 
     for (const ddl of Object.values(tableDDLs)) {

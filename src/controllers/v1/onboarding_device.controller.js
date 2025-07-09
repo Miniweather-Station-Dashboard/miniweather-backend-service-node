@@ -9,6 +9,7 @@ const {
 } = require("../../mqtt/subscriber");
 const { buildSchemaFields } = require("../../helpers/buildSchemaFields");
 const collectionsRepository = require("../../repositories/collections/collections.factory");
+const recentActivityRepository = require("../../repositories/recent_activity.repository")
 
 const createOnboardingDevice = async (req) => {
   const { name, location, status, sensorTypeIds } = req.body;
@@ -43,19 +44,20 @@ const createOnboardingDevice = async (req) => {
 
     const schemaFields = await buildSchemaFields(sensorTypeIds || []);
 
-
     await collectionsRepository.create(
       {
         id: device.id,
         name,
         projectId: process.env.HYPERBASE_PROJECT_ID,
-        schemaFields, 
+        schemaFields,
       },
       client
     );
 
     await collectionsRepository.createCollectionTable(device.id, schemaFields);
-    await collectionsRepository.makeCollectionRules(device.id)
+    await collectionsRepository.makeCollectionRules(device.id);
+
+    await recentActivityRepository.create(`New device added: ${name}`, client);
 
     if (status === "active") {
       await subscribeToDevice(device.id);
@@ -64,6 +66,7 @@ const createOnboardingDevice = async (req) => {
     return { message: "Device created", device };
   });
 };
+
 
 const getAllOnboardingDevices = async (req) => {
   const limit = parseInt(req.query.limit, 10) || 10;
@@ -169,6 +172,9 @@ const updateOnboardingDevice = async (req) => {
     }
   }
 
+  await recentActivityRepository.create(`Device updated: ${updatedDevice.name}`);
+
+
   return {
     message: "Onboarding device updated successfully",
     device: updatedDevice,
@@ -186,6 +192,9 @@ const deleteOnboardingDevice = async (req) => {
   }
 
   await onboardingDeviceRepository.delete(id);
+
+    await recentActivityRepository.create(`Device deleted: ${device.name}`);
+
 
   // Unsubscribe if device was active
   if (device.status === "active") {
