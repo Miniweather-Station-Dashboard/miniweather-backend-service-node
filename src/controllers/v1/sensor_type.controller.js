@@ -69,11 +69,21 @@ const deleteSensorType = async (req) => {
       statusCode: 404,
     });
   }
+
+  const isUsed = await sensorTypeRepository.isSensorTypeUsed(id);
+  if (isUsed) {
+    throw new CustomError({
+      message: "Cannot delete sensor type that is currently in use by a device",
+      statusCode: 400,
+    });
+  }
+
   await sensorTypeRepository.delete(id);
   await recentActivityRepository.create(`Sensor type deleted: ${existing.name}`);
 
   return { message: "Sensor type deleted successfully" };
 };
+
 
 module.exports = {
   createSensorType,

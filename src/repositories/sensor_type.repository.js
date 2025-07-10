@@ -69,6 +69,21 @@ class SensorTypeRepository {
     const res = await pool.query(query);
     return res.rows[0];
   }
+
+
+  async isSensorTypeUsed(id) {
+  const query = {
+    text: `
+      SELECT 1 FROM device_sensors
+      WHERE sensor_type_id = $1
+      LIMIT 1
+    `,
+    values: [id],
+  };
+  const res = await pool.query(query);
+  return res.rowCount > 0;
+}
+
 }
 
 module.exports = new SensorTypeRepository();
