@@ -1,10 +1,11 @@
 const articleRepository = require("../../repositories/article.repository");
 const CustomError = require("../../helpers/customError");
+const { HYPERBASE_AUTH_TOKEN } = require("../../worker/hyperbaseAuthWorker");
 
 const BASE_URL = process.env.HYPERBASE_HOST;
 const PROJECT_ID = process.env.HYPERBASE_PROJECT_ID;
 const BUCKET_ID = process.env.HYPERBASE_BUCKET_ID;
-const TOKEN = process.env.HYPERBASE_AUTH_TOKEN;
+const TOKEN = HYPERBASE_AUTH_TOKEN;
 
 const getImageUrl = (imageId) => {
     if (!imageId) {
@@ -153,7 +154,7 @@ const createArticle = async (req) => {
     const headerImageFile = req.file;
     const author_id = req.user ? req.user.id : null;
 
-    let header_image_id = null;
+    let header_image_id = null;    
     if (headerImageFile) {
         header_image_id = await uploadImageToService({
             imageDataBuffer: headerImageFile.buffer,
