@@ -38,11 +38,7 @@ class EmailService {
       
       <h3>Login Credentials:</h3>
       <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Temporary Password:</strong> ${password}</p>
-
-      <p style="color: #ff0000; font-weight: bold;">
-        For security, please change your password after first login.
-      </p>
+      <p><strong>Password:</strong> ${password}</p>
 
       <small>
         If you did not request this account, contact the administrator immediately.
