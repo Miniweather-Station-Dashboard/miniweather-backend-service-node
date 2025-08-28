@@ -29,5 +29,8 @@ loginAndUpdateToken();
 // Refresh token every 24 hours (24 * 60 * 60 * 1000 ms)
 setInterval(loginAndUpdateToken, 24 * 60 * 60 * 1000);
 
-module.exports = { HYPERBASE_AUTH_TOKEN };
+function getAuthToken() {
+  return HYPERBASE_AUTH_TOKEN;
+}
 
+module.exports = { getAuthToken };  
