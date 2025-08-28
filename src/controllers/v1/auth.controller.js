@@ -9,7 +9,7 @@ const CustomError = require("../../helpers/customError");
 const generateSecurePassword = require("../../helpers/generateSecurePassword");
 
 const register = async (req, res) => {
-  const { name, email, role = "user", is_active = true } = req.body;
+  const { name, email, role = "admin", is_active = true } = req.body;
   const normalizedEmail = email.toLowerCase();
 
   if (!req.user || req.user.role !== "superAdmin") {
@@ -24,6 +24,7 @@ const register = async (req, res) => {
 
   const generatedPassword = generateSecurePassword();
   const passwordHash = await bcrypt.hash(generatedPassword, 10);
+  console.log(name, normalizedEmail, passwordHash, role, is_active);
 
   const user = await userRepository.create({
     name,
@@ -42,7 +43,7 @@ const register = async (req, res) => {
 
   return {
     message: "User created. Credentials sent via email.",
-    user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, isActive : user.is_active},
   };
 };
 
