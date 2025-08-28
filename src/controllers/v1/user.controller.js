@@ -76,7 +76,14 @@ const updateUser = async (req) => {
 
   return {
     message: "User updated successfully",
-    user: updated,
+    user: {
+      id: updated.id,
+      name: updated.name,
+      email: updated.email,
+      role: updated.role,
+      isActive: updated.is_active,
+      createdAt: updated.createdAt,
+    },
   };
 };
 
