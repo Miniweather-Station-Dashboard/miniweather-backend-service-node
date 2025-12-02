@@ -10,7 +10,9 @@ async function loginAndUpdateToken() {
       email: process.env.HYPERBASE_EMAIL,
       password: process.env.HYPERBASE_PASSWORD,
     });
-
+    console.log("the url:",`${BASE_URL}/api/rest/auth/password-based`)
+    console.log("the credentials: ",process.env.HYPERBASE_EMAIL,process.env.HYPERBASE_PASSWORD)
+   console.log("the response: ", response.data)
     const token = response.data?.data?.token;
     if (token) {
       HYPERBASE_AUTH_TOKEN = token;
