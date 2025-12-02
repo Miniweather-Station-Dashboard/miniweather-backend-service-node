@@ -5,13 +5,14 @@ const BASE_URL = process.env.HYPERBASE_HOST;
  
 
 async function loginAndUpdateToken() {
+     console.log("the url:",`${BASE_URL}/api/rest/auth/password-based`)
+    console.log("the credentials: ",process.env.HYPERBASE_EMAIL,process.env.HYPERBASE_PASSWORD)
   try {
     const response = await axios.post(`${BASE_URL}/api/rest/auth/password-based`, {
       email: process.env.HYPERBASE_EMAIL,
       password: process.env.HYPERBASE_PASSWORD,
     });
-    console.log("the url:",`${BASE_URL}/api/rest/auth/password-based`)
-    console.log("the credentials: ",process.env.HYPERBASE_EMAIL,process.env.HYPERBASE_PASSWORD)
+
    console.log("the response: ", response.data)
     const token = response.data?.data?.token;
     if (token) {
@@ -21,6 +22,7 @@ async function loginAndUpdateToken() {
       console.error('❌ Login response missing token');
     }
   } catch (err) {
+   console.log(err)
     console.error('❌ Failed to login to Hyperbase:', err.message);
   }
 }
