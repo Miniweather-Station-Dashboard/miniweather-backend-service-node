@@ -67,6 +67,9 @@ router.post(
         });
 
       const result = await warningController.createWarning(req);
+      if (global.io) {
+        global.io.emit("warning_created", result.warning);
+      }
       res.status(201).json(
         successResponse({
           message: "Warning created successfully",

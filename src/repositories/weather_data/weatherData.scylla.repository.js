@@ -104,7 +104,7 @@ class WeatherDataRepositoryScyllaDB {
     const query = `
         SELECT *
         FROM ${sanitizedTable}
-        WHERE updated_at >= ? AND updated_at <= ?
+        WHERE "_updated_at" >= ? AND "_updated_at" <= ?
         LIMIT ?
         ALLOW FILTERING
     `;

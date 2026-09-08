@@ -10,6 +10,9 @@ class WarningRepository {
                         message,
                         type,
                         is_active as "isActive",
+                        source,
+                        hazard,
+                        level,
                         created_at as "createdAt",
                         updated_at as "updatedAt"
                 FROM warnings
@@ -41,6 +44,9 @@ class WarningRepository {
                         message,
                         type,
                         is_active as "isActive",
+                        source,
+                        hazard,
+                        level,
                         created_at as "createdAt",
                         updated_at as "updatedAt"
                 FROM warnings
@@ -70,6 +76,9 @@ class WarningRepository {
                         message,
                         type,
                         is_active,
+                        source,
+                        hazard,
+                        level,
                         created_at,
                         updated_at
                 FROM warnings
@@ -81,17 +90,26 @@ class WarningRepository {
         return res.rows[0];
     }
 
-    async create({ message, type, is_active }) {
+    async create({ message, type, is_active, source, hazard, level }) {
         const res = await pool.query(
-            `INSERT INTO warnings (message, type, is_active)
-             VALUES ($1, $2, $3)
-             RETURNING id, message, type, is_active as "isActive", created_at as "createdAt"`,
-            [message, type, is_active]
+            `INSERT INTO warnings (message, type, is_active, source, hazard, level)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, message, type, is_active as "isActive",
+                       source, hazard, level,
+                       created_at as "createdAt", updated_at as "updatedAt"`,
+            [
+                message,
+                type === undefined || type === null ? "general" : type,
+                is_active === undefined || is_active === null ? true : is_active,
+                source === undefined || source === null ? "manual" : source,
+                hazard === undefined || hazard === null ? null : hazard,
+                level === undefined || level === null ? null : level,
+            ]
         );
         return res.rows[0];
     }
 
-    async update(id, { message, type, is_active }) {
+    async update(id, { message, type, is_active, source, hazard, level }) {
         const query = {
             text: `
                 UPDATE warnings
@@ -99,11 +117,16 @@ class WarningRepository {
                         message = COALESCE($2, message),
                         type = COALESCE($3, type),
                         is_active = COALESCE($4, is_active),
+                        source = COALESCE($5, source),
+                        hazard = COALESCE($6, hazard),
+                        level = COALESCE($7, level),
                         updated_at = NOW()
                 WHERE id = $1
-                RETURNING id, message, type, is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
+                RETURNING id, message, type, is_active as "isActive",
+                          source, hazard, level,
+                          created_at as "createdAt", updated_at as "updatedAt"
             `,
-            values: [id, message, type, is_active],
+            values: [id, message, type, is_active, source, hazard, level],
         };
         const res = await pool.query(query);
         return res.rows[0];

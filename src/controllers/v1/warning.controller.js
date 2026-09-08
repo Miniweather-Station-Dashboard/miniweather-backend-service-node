@@ -49,6 +49,9 @@ const getWarningById = async (req) => {
             message: record.message,
             type: record.type,
             is_active: record.is_active,
+            source: record.source,
+            hazard: record.hazard,
+            level: record.level,
             createdAt: record.created_at,
             updatedAt: record.updated_at,
         },
@@ -60,12 +63,15 @@ const getWarningById = async (req) => {
  * @returns {Promise<object>} - Object containing the created warning.
  */
 const createWarning = async (req) => {
-    const { message, type, is_active } = req.body;
+    const { message, type, is_active, source, hazard, level } = req.body;
 
     const newWarning = await warningRepository.create({
         message,
         type,
         is_active,
+        source,
+        hazard,
+        level,
     });
 
     return {
@@ -81,7 +87,7 @@ const createWarning = async (req) => {
  */
 const updateWarning = async (req) => {
     const { id } = req.params;
-    const { message, type, is_active } = req.body;
+    const { message, type, is_active, source, hazard, level } = req.body;
 
     const existingWarning = await warningRepository.findById(id);
     if (!existingWarning) {
@@ -95,6 +101,9 @@ const updateWarning = async (req) => {
         message: message || existingWarning.message,
         type: type || existingWarning.type,
         is_active: is_active !== undefined ? is_active : existingWarning.is_active,
+        source: source !== undefined ? source : existingWarning.source,
+        hazard: hazard !== undefined ? hazard : existingWarning.hazard,
+        level: level !== undefined ? level : existingWarning.level,
     });
 
     return {
