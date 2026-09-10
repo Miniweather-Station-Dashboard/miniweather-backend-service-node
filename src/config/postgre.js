@@ -126,6 +126,9 @@ async function checkAndCreateTables() {
             message varchar(500) NOT NULL,
             type varchar(50) DEFAULT 'general' NULL,
             is_active bool DEFAULT true NULL,
+            source varchar(20) DEFAULT 'manual' NULL,
+            hazard varchar(50) NULL,
+            level varchar(20) NULL,
             created_at timestamptz DEFAULT now() NULL,
             updated_at timestamptz DEFAULT now() NULL,
             CONSTRAINT warnings_pkey PRIMARY KEY (id)
@@ -144,6 +147,14 @@ async function checkAndCreateTables() {
     for (const ddl of Object.values(tableDDLs)) {
       await client.query(ddl);
     }
+
+    // Idempotent migration for deployments created before the structured fields existed.
+    await client.query(`
+      ALTER TABLE public.warnings
+        ADD COLUMN IF NOT EXISTS source varchar(20) DEFAULT 'manual',
+        ADD COLUMN IF NOT EXISTS hazard varchar(50),
+        ADD COLUMN IF NOT EXISTS level varchar(20);
+    `);
 
     const email = process.env.SUPERADMIN_EMAIL || DEFAULT_SUPERADMIN_EMAIL;
     const rawPassword =
