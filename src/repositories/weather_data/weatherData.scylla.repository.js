@@ -115,6 +115,34 @@ class WeatherDataRepositoryScyllaDB {
   }
 
   /**
+   * Get the most recent `_updated_at` timestamp available for a device table.
+   * Returns an ISO string, or null when the table has no rows.
+   * @param {Object} options
+   * @param {string} options.tableName - Target records table name
+   * @returns {Promise<string|null>}
+   */
+  async getLatestTimestamp({ tableName }) {
+    const sanitizedTable = this._sanitizeTableName(tableName);
+
+    // ponytail: full scan of one device table; these tables are small today.
+    // Add a time-bucketed primary key (e.g. day) if a table grows large.
+    const query = `
+      SELECT "_updated_at"
+      FROM ${sanitizedTable}
+      ALLOW FILTERING
+    `;
+    const res = await client.execute(query, [], { prepare: true });
+
+    let latest = null;
+    for (const row of res.rows) {
+      if (!row._updated_at) continue;
+      const ts = new Date(row._updated_at);
+      if (!latest || ts > latest) latest = ts;
+    }
+    return latest ? latest.toISOString() : null;
+  }
+
+  /**
    * Insert new weather data record into specified table
    * @param {Object} options
    * @param {string} options.tableName - Target table

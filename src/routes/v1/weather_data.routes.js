@@ -86,6 +86,49 @@ const roleMiddleware = require("../../middlewares/role.middleware.js");
  *                       avg_rainfall:
  *                         type: number
  */
+/**
+ * @swagger
+ * /v1/weather-data/latest:
+ *   get:
+ *     summary: Get the most recent available weather timestamp for a device
+ *     tags: [WeatherData]
+ *     parameters:
+ *       - in: query
+ *         name: deviceId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Device id whose latest record timestamp is requested
+ *     responses:
+ *       200:
+ *         description: Latest timestamp retrieved (null when the device has no data)
+ */
+router.get(
+  "/latest",
+  validate("getLatestWeatherTime"),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty())
+        throw new CustomError({
+          message: "Validation failed",
+          statusCode: 400,
+          errors: errors.array(),
+        });
+
+      const result = await weatherDataController.getLatestWeatherTime(req);
+      res.status(200).json(
+        successResponse({
+          message: "Latest weather timestamp retrieved",
+          data: result,
+        })
+      );
+    } catch (err) {
+      await failedResponse({ res, req, errors: err });
+    }
+  }
+);
+
 router.get(
   "/",
   validate("getWeatherData"),

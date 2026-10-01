@@ -55,10 +55,12 @@ const getWeatherDataAverages = async (req) => {
     });
   }
 
-  const maxRange = 7 * 24 * 60 * 60 * 1000;
+  const maxRangeDays =
+    parseInt(process.env.WEATHER_DATA_MAX_RANGE_DAYS, 10) || 31;
+  const maxRange = maxRangeDays * 24 * 60 * 60 * 1000;
   if (endTime - startTime > maxRange) {
     throw new CustomError({
-      message: "Time range cannot exceed 7 days",
+      message: `Time range cannot exceed ${maxRangeDays} days`,
       statusCode: 400,
     });
   }
@@ -103,6 +105,27 @@ const getWeatherDataAverages = async (req) => {
   };
 };
 
+/**
+ * Get the most recent timestamp available for a device.
+ * Used by the dashboard to auto-select a time range that actually has data.
+ */
+const getLatestWeatherTime = async (req) => {
+  const { deviceId } = req.query;
+
+  if (!deviceId) {
+    throw new CustomError({
+      message: "deviceId is required",
+      statusCode: 400,
+    });
+  }
+
+  const tableName = `records_${deviceId.replace(/-/g, "")}`;
+  const latest = await weatherDataRepository.getLatestTimestamp({ tableName });
+
+  return { deviceId, latest };
+};
+
 module.exports = {
   getWeatherDataAverages,
+  getLatestWeatherTime,
 };

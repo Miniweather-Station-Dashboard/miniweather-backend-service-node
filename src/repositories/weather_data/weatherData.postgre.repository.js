@@ -60,6 +60,23 @@ class WeatherDataRepositoryPostgreSQL {
   }
 
   /**
+   * Get the most recent `_updated_at` timestamp available for a device table.
+   * Returns an ISO string, or null when the table has no rows.
+   * @param {Object} options
+   * @param {string} options.tableName - Target records table name
+   * @returns {Promise<string|null>}
+   */
+  async getLatestTimestamp({ tableName }) {
+    const sanitizedTable = this._sanitizeTableName(tableName);
+
+    const res = await pool.query(
+      `SELECT MAX("_updated_at") AS latest FROM ${sanitizedTable}`
+    );
+    const latest = res.rows[0]?.latest;
+    return latest ? new Date(latest).toISOString() : null;
+  }
+
+  /**
    * Insert new weather data record into specified table
    * @param {Object} options
    * @param {string} options.tableName - Target table
