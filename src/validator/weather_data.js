@@ -29,6 +29,15 @@ exports.validate = (method) => {
                     .withMessage("Timezone must be a string")
             ];
         }
+        case "getLatestWeatherTime": {
+            return [
+                query("deviceId")
+                    .notEmpty()
+                    .withMessage("Device ID is required")
+                    .isString()
+                    .withMessage("Device ID must be a string")
+            ];
+        }
         case "createWeatherData": {
             return [
                 body("pressure")
