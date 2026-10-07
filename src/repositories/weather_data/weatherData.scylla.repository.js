@@ -16,6 +16,7 @@ class WeatherDataRepositoryScyllaDB {
     startTime,
     endTime,
     tableName,
+    collectionId,
     timezone = "UTC",
     fields = [],
   }) {
@@ -35,19 +36,22 @@ class WeatherDataRepositoryScyllaDB {
       return JSON.parse(cached);
     }
 
+    // Scope to the device partition (collectionId) so Scylla reads one partition
+    // instead of scanning the whole table.
     const query = `
       SELECT "_updated_at", ${fields.join(", ")}
       FROM ${sanitizedTable}
-      WHERE "_updated_at" >= ? AND "_updated_at" <= ?
+      WHERE "_collection_id" = ? AND "_updated_at" >= ? AND "_updated_at" <= ?
       ALLOW FILTERING
     `;
-    const params = [startTime, endTime];
+    const params = [collectionId, startTime, endTime];
 
     const res = await client.execute(query, params, { prepare: true });
 
     const minuteAverages = new Map();
 
-    for (const row of res.rows) {
+    // Iterate every page (auto-paging); `res.rows` would only expose the first page.
+    for await (const row of res) {
       const date = new Date(row._updated_at);
       const minuteKey = new Date(
         date.toLocaleString("en-US", { timeZone: timezone })
@@ -95,7 +99,7 @@ class WeatherDataRepositoryScyllaDB {
    * @param {number} [options.limit=1000] - Maximum number of records to return
    * @returns {Promise<Array>} Array of raw records
    */
-  async getDataInTimeRange({ startTime, endTime, tableName, limit = 1000 }) {
+  async getDataInTimeRange({ startTime, endTime, tableName, collectionId, limit = 1000 }) {
     const sanitizedTable = this._sanitizeTableName(tableName);
 
     // In ScyllaDB, filtering on non-primary key columns (like _updated_at if not part of PK)
@@ -104,42 +108,38 @@ class WeatherDataRepositoryScyllaDB {
     const query = `
         SELECT *
         FROM ${sanitizedTable}
-        WHERE "_updated_at" >= ? AND "_updated_at" <= ?
+        WHERE "_collection_id" = ? AND "_updated_at" >= ? AND "_updated_at" <= ?
         LIMIT ?
         ALLOW FILTERING
     `;
-    const params = [startTime, endTime, limit];
+    const params = [collectionId, startTime, endTime, limit];
 
     const res = await client.execute(query, params, { prepare: true });
     return res.rows;
   }
 
   /**
-   * Get the most recent `_updated_at` timestamp available for a device table.
-   * Returns an ISO string, or null when the table has no rows.
+   * Get the most recent `_updated_at` timestamp available for a device.
+   * Uses a server-side max() aggregate so only ONE row is returned — the driver
+   * `fetchSize` paging bug (first page only) cannot hide the true latest row.
    * @param {Object} options
    * @param {string} options.tableName - Target records table name
+   * @param {Uuid|string} options.collectionId - Device partition key (_collection_id)
    * @returns {Promise<string|null>}
    */
-  async getLatestTimestamp({ tableName }) {
+  async getLatestTimestamp({ tableName, collectionId }) {
     const sanitizedTable = this._sanitizeTableName(tableName);
 
-    // ponytail: full scan of one device table; these tables are small today.
-    // Add a time-bucketed primary key (e.g. day) if a table grows large.
+    // Aggregating a partition needs no ALLOW FILTERING; Scylla computes max server-side.
     const query = `
-      SELECT "_updated_at"
+      SELECT max("_updated_at") AS latest
       FROM ${sanitizedTable}
-      ALLOW FILTERING
+      WHERE "_collection_id" = ?
     `;
-    const res = await client.execute(query, [], { prepare: true });
+    const res = await client.execute(query, [collectionId], { prepare: true });
 
-    let latest = null;
-    for (const row of res.rows) {
-      if (!row._updated_at) continue;
-      const ts = new Date(row._updated_at);
-      if (!latest || ts > latest) latest = ts;
-    }
-    return latest ? latest.toISOString() : null;
+    const latest = res.rows[0]?.latest;
+    return latest ? new Date(latest).toISOString() : null;
   }
 
   /**
