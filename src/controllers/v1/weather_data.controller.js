@@ -1,6 +1,36 @@
+const cassandra = require("cassandra-driver");
+const redis = require("../../config/redis");
 const weatherDataRepository = require("../../repositories/weather_data/weatherData.factory");
 const CustomError = require("../../helpers/customError");
 const collectionsRepository = require("../../repositories/collections/collections.factory");
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Short-lived cache so a repeatedly-loaded dashboard does not trigger a
+// server-side max() over the device partition on every request.
+const LATEST_CACHE_TTL_SECONDS = 45;
+
+/**
+ * Validate deviceId and derive the Scylla identifiers.
+ * Returns a 400 (instead of a 500 "Invalid table name") for malformed ids.
+ */
+const resolveDevice = (deviceId) => {
+  if (!deviceId) {
+    throw new CustomError({ message: "deviceId is required", statusCode: 400 });
+  }
+  if (!UUID_RE.test(deviceId)) {
+    throw new CustomError({
+      message: "deviceId must be a valid UUID",
+      statusCode: 400,
+    });
+  }
+  return {
+    deviceId,
+    collectionId: cassandra.types.Uuid.fromString(deviceId),
+    tableName: `records_${deviceId.replace(/-/g, "")}`,
+  };
+};
 
 const getWeatherDataAverages = async (req) => {
   let {
@@ -11,13 +41,7 @@ const getWeatherDataAverages = async (req) => {
     deviceId,
   } = req.query;
 
-  // Validate required fields
-  if (!deviceId) {
-    throw new CustomError({
-      message: "deviceId is required",
-      statusCode: 400,
-    });
-  }
+  const { collectionId, tableName } = resolveDevice(deviceId);
 
   if (!startTime || !endTime) {
     throw new CustomError({
@@ -65,10 +89,7 @@ const getWeatherDataAverages = async (req) => {
     });
   }
 
-  // Generate dynamic table name from device ID
-  const tableName = `records_${deviceId.replace(/-/g, "")}`;
-
-  // Fetch data from correct table
+  // Fetch data from the device's Scylla partition
   let data;
   switch (interval) {
     case "minute":
@@ -77,6 +98,7 @@ const getWeatherDataAverages = async (req) => {
         endTime,
         timezone: timezone || "UTC",
         tableName,
+        collectionId,
         fields,
       });
       break;
@@ -85,7 +107,7 @@ const getWeatherDataAverages = async (req) => {
         startTime,
         endTime,
         tableName,
-        fields,
+        collectionId,
       });
       break;
     default:
@@ -110,17 +132,20 @@ const getWeatherDataAverages = async (req) => {
  * Used by the dashboard to auto-select a time range that actually has data.
  */
 const getLatestWeatherTime = async (req) => {
-  const { deviceId } = req.query;
+  const { deviceId, collectionId, tableName } = resolveDevice(req.query.deviceId);
 
-  if (!deviceId) {
-    throw new CustomError({
-      message: "deviceId is required",
-      statusCode: 400,
-    });
+  const cacheKey = `latest:${deviceId}`;
+  const cached = await redis.get(cacheKey);
+  if (cached !== null && cached !== undefined) {
+    return { deviceId, latest: cached === "__none__" ? null : cached };
   }
 
-  const tableName = `records_${deviceId.replace(/-/g, "")}`;
-  const latest = await weatherDataRepository.getLatestTimestamp({ tableName });
+  const latest = await weatherDataRepository.getLatestTimestamp({
+    tableName,
+    collectionId,
+  });
+
+  await redis.set(cacheKey, latest ?? "__none__", "EX", LATEST_CACHE_TTL_SECONDS);
 
   return { deviceId, latest };
 };
