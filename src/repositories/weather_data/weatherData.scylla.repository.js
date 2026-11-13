@@ -47,12 +47,9 @@ class WeatherDataRepositoryScyllaDB {
     `;
     const params = [collectionId, startTime, endTime];
 
-    const res = await client.execute(query, params, { prepare: true });
-
     const minuteAverages = new Map();
 
-    // Iterate every page (auto-paging); `res.rows` would only expose the first page.
-    for await (const row of res) {
+    for await (const row of this._iterateRows(query, params)) {
       const date = new Date(row._updated_at);
       const minuteKey = new Date(
         date.toLocaleString("en-US", { timeZone: timezone })
@@ -115,8 +112,12 @@ class WeatherDataRepositoryScyllaDB {
     `;
     const params = [collectionId, startTime, endTime, limit];
 
-    const res = await client.execute(query, params, { prepare: true });
-    return res.rows;
+    const rows = [];
+    for await (const row of this._iterateRows(query, params)) {
+      rows.push(row);
+      if (rows.length >= limit) break;
+    }
+    return rows;
   }
 
   /**
@@ -185,6 +186,16 @@ class WeatherDataRepositoryScyllaDB {
       temperature,
       rainfall,
     };
+  }
+
+  async *_iterateRows(query, params) {
+    let pageState;
+    do {
+      const result = await client.execute(query, params, { prepare: true, pageState });
+      yield* result.rows;
+      // Scylla filtering can return an empty page with more results to read.
+      pageState = result.pageState;
+    } while (pageState);
   }
 
   _sanitizeTableName(tableName) {
