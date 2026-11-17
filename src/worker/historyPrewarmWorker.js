@@ -71,8 +71,12 @@ async function prewarmDevice(deviceId) {
   );
 
   await redisClient.set(
-    `minute24:${deviceId}`,
-    JSON.stringify(data),
+    `minute24:v2:${deviceId}`,
+    JSON.stringify({
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      data,
+    }),
     "EX",
     PREWARM_TTL_SECONDS
   );

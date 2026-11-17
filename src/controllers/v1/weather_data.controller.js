@@ -116,13 +116,18 @@ const getWeatherDataAverages = async (req) => {
       // separately, since the repository cache key includes exact timestamps.
       const spanMs = endTime - startTime;
       const isLast24h = Math.abs(spanMs - 24 * 60 * 60 * 1000) < 60 * 1000;
-      const minuteCacheKey = `minute24:${deviceId}`;
+      const minuteCacheKey = `minute24:v2:${deviceId}`;
 
       if (isLast24h) {
         const cached = await redis.get(minuteCacheKey);
         if (cached) {
-          data = JSON.parse(cached);
-          break;
+          const envelope = JSON.parse(cached);
+          if (envelope?.startTime === startTime.toISOString() &&
+              envelope?.endTime === endTime.toISOString() &&
+              Array.isArray(envelope.data)) {
+            data = envelope.data;
+            break;
+          }
         }
       }
 
@@ -136,7 +141,11 @@ const getWeatherDataAverages = async (req) => {
       });
 
       if (isLast24h) {
-        await redis.set(minuteCacheKey, JSON.stringify(data), "EX", 600);
+        await redis.set(minuteCacheKey, JSON.stringify({
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          data,
+        }), "EX", 600);
       }
       break;
     }

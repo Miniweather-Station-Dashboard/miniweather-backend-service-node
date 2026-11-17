@@ -51,11 +51,7 @@ class WeatherDataRepositoryScyllaDB {
 
     for await (const row of this._iterateRows(query, params)) {
       const date = new Date(row._updated_at);
-      const minuteKey = new Date(
-        date.toLocaleString("en-US", { timeZone: timezone })
-      )
-        .toISOString()
-        .substring(0, 16); 
+      const minuteKey = Math.floor(date.getTime() / 60000) * 60000;
 
       if (!minuteAverages.has(minuteKey)) {
         minuteAverages.set(minuteKey, {
@@ -79,7 +75,7 @@ class WeatherDataRepositoryScyllaDB {
         for (const field of fields) {
           averaged[field] = data.count > 0 ? data.values[field] / data.count : null;
         }
-        return { minute: new Date(minute + ":00.000Z"), ...averaged };
+        return { minute: new Date(minute), ...averaged };
       })
       .sort((a, b) => a.minute.getTime() - b.minute.getTime());
 
@@ -206,7 +202,7 @@ class WeatherDataRepositoryScyllaDB {
   }
 
   _generateCacheKey({ prefix, table, collectionId, startTime, endTime, timezone, fields }) {
-    const raw = `${table}|${collectionId}|${startTime.toISOString()}|${endTime.toISOString()}|${timezone}|${fields.join(",")}`;
+    const raw = `utc-minute-v2|${table}|${collectionId}|${startTime.toISOString()}|${endTime.toISOString()}|${timezone}|${fields.join(",")}`;
     const hash = crypto.createHash("sha256").update(raw).digest("hex");
     return `${prefix}:${table}:${hash}`;
   }
