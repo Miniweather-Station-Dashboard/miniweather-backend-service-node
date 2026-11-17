@@ -38,7 +38,7 @@ function loadRepository(pages, cached = null) {
     },
   };
   const redis = {
-    get: async () => cached,
+    get: async (key) => typeof cached === "function" ? cached(key) : cached,
     set: async (...args) => writes.push(args),
   };
   const filename = path.join(__dirname,
@@ -123,4 +123,37 @@ test("raw data page failures are not returned as successful partial data", async
     [row("2026-11-12T00:00:00Z", 20)], [], failure,
   ]);
   await assert.rejects(repository.getDataInTimeRange(options), failure);
+});
+
+for (const hostZone of ["UTC", "Asia/Jakarta", "America/New_York"]) {
+  test(`UTC minute instants survive Jakarta query on host ${hostZone}`, async () => {
+    const previous = process.env.TZ;
+    process.env.TZ = hostZone;
+    try {
+      const { repository } = loadRepository([[
+        row("2026-11-12T16:59:59Z", 10),
+        row("2026-11-12T17:00:01Z", 12),
+        row("2026-11-12T23:59:59Z", 20),
+        row("2026-11-13T00:00:01Z", 24),
+        row("2026-11-13T00:00:59Z", 28),
+      ]]);
+      assert.deepEqual(await repository.getMinuteAverages({ ...options, timezone: "Asia/Jakarta" }), [
+        { minute: new Date("2026-11-12T16:59:00Z"), temperature: 10 },
+        { minute: new Date("2026-11-12T17:00:00Z"), temperature: 12 },
+        { minute: new Date("2026-11-12T23:59:00Z"), temperature: 20 },
+        { minute: new Date("2026-11-13T00:00:00Z"), temperature: 26 },
+      ]);
+    } finally { process.env.TZ = previous; }
+  });
+}
+
+test("old repository hash is ignored while table invalidation pattern survives", async () => {
+  const crypto = require("node:crypto");
+  const raw = `${options.tableName}|${options.collectionId}|${options.startTime.toISOString()}|${options.endTime.toISOString()}|${options.timezone}|${options.fields.join(",")}`;
+  const oldKey = `minute_avg:${options.tableName}:${crypto.createHash("sha256").update(raw).digest("hex")}`;
+  const { repository, calls, writes } = loadRepository([[]], key => key === oldKey ? '[{"shifted":true}]' : null);
+  assert.deepEqual(await repository.getMinuteAverages(options), []);
+  assert.equal(calls.length, 1);
+  assert.match(writes[0][0], /^minute_avg:records_test:/);
+  assert.notEqual(writes[0][0], oldKey);
 });
